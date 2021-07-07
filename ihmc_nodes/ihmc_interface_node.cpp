@@ -38,14 +38,14 @@ bool IHMCInterfaceNode::initializeConnections() {
 void IHMCInterfaceNode::transformCallback(const geometry_msgs::TransformStamped& tf_msg) {
     if( receive_pelvis_transform_ ) {
         // set pelvis translation based on message
-        tf_pelvis_wrt_world_.setOrigin(tf::Vector3(tf_msg.translation.x,
-                                                   tf_msg.translation.y,
-                                                   tf_msg.translation.z));
+        tf_pelvis_wrt_world_.setOrigin(tf::Vector3(tf_msg.transform.translation.x,
+                                                   tf_msg.transform.translation.y,
+                                                   tf_msg.transform.translation.z));
         // set pelvis orientation based on message
-        tf::Quaternion quat_pelvis_wrt_world(tf_msg.rotation.x,
-                                             tf_msg.rotation.y,
-                                             tf_msg.rotation.z,
-                                             tf_msg.rotation.w);
+        tf::Quaternion quat_pelvis_wrt_world(tf_msg.transform.rotation.x,
+                                             tf_msg.transform.rotation.y,
+                                             tf_msg.transform.rotation.z,
+                                             tf_msg.transform.rotation.w);
         tf_pelvis_wrt_world_.setRotation(quat_pelvis_wrt_world);
 
         // set flag to no longer receive transform messages
@@ -152,10 +152,10 @@ void IHMCInterfaceNode::prepareConfigurationVector() {
     q_[valkyrie_joint::virtual_Rw] = pelvis_rotation.w();
 
     // set joints
-    for( int i = 0 ; i < q_joints_.size() ; i++ ) {
+    for( int i = 0 ; i < q_joint_.size() ; i++ ) {
         // set index for joint, add offset to account for virtual joints
         int jidx = i + valkyrie::num_virtual;
-        q_[jidx] = q_joints_[i];
+        q_[jidx] = q_joint_[i];
     }
 
     return;

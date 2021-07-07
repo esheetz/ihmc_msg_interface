@@ -4,6 +4,7 @@
  **/
 
 #include <iostream>
+#include <memory>
 
 #include <Utils/wrap_eigen.hpp>
 #include <Valkyrie/Valkyrie_Definition.h>

@@ -166,7 +166,7 @@ namespace IHMCMsgUtils {
     }
 
     void makeIHMCSE3TrajectoryMessage(dynacore::Vect3 pos, dynacore::Quaternion quat,
-                                      controller_msgs::SE3TrajectoryMessage se3_msg,
+                                      controller_msgs::SE3TrajectoryMessage& se3_msg,
                                       int trajectory_reference_frame_id,
                                       int data_reference_frame_id,
                                       IHMCMessageParameters msg_params) {
@@ -290,7 +290,7 @@ namespace IHMCMsgUtils {
         makeQuaternionMessage(quat, so3_point_msg.orientation);
 
         // set angular velocity to zero
-        makeZeroVector3Message(se3_point_msg.angular_velocity);
+        makeZeroVector3Message(so3_point_msg.angular_velocity);
 
         return;
     }
@@ -520,12 +520,13 @@ namespace IHMCMsgUtils {
     void selectRelevantJointsConfiguration(dynacore::Vector q,
                                            std::vector<int> joint_indices,
                                            dynacore::Vector& q_joints) {
-        // clear relevant joint configuration vector
-        q_joints.clear();
+        // resize and clear relevant joint configuration vector
+        q_joints.resize(joint_indices.size());
+        q_joints.setZero();
 
         // push back relevant joint positions
         for( int i = 0 ; i < joint_indices.size() ; i++ ) {
-            q_joints.push_back(q[joint_indices[i]]);
+            q_joints[i] = q[joint_indices[i]];
         }
 
         return;
@@ -585,7 +586,7 @@ namespace IHMCMsgUtils {
         joint_indices.push_back(valkyrie_joint::torsoYaw);
         joint_indices.push_back(valkyrie_joint::torsoPitch);
         joint_indices.push_back(valkyrie_joint::torsoRoll);
-        
+
         return;
     }
 
@@ -616,7 +617,7 @@ namespace IHMCMsgUtils {
     }
 
     void getRelevantJointIndicesRightArm(std::vector<int>& joint_indices) {
-        // clear joint index vector
+	// clear joint index vector
         joint_indices.clear();
 
         // push back joints for right arm [shoulderPitch, shoulderRoll, shoulderYaw, elbowPitch, forearmYaw]
@@ -658,6 +659,8 @@ namespace IHMCMsgUtils {
         pelvis_quat.y() = q_joints[4];
         pelvis_quat.z() = q_joints[5];
         pelvis_quat.w() = q_joints[6];
+
+        return;
     }
 
     void getFeetPoses(dynacore::Vector q,

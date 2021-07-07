@@ -14,7 +14,7 @@
 #include <ros/ros.h>
 #include <sensor_msgs/JointState.h>
 #include <geometry_msgs/TransformStamped.h>
-#include <tf/Transform.h>
+#include <tf/tf.h>
 #include <ihmc_utils/ihmc_msg_utilities.h>
 
 class IHMCInterfaceNode
