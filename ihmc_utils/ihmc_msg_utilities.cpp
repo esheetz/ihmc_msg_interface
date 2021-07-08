@@ -376,14 +376,21 @@ namespace IHMCMsgUtils {
         makeIHMCChestTrajectoryMessage(chest_quat, wholebody_msg.chest_trajectory_message, msg_params);
 
         // SPINE TRAJECTORY
+        /*
+         * NOTE: spine trajectories work well in sim, but not on real robot;
+         * the code below has been tested in sim and works,
+         * but is commented out since it is unreliable in practice
+         */
+        /*
         // get relevant joint indices for spine
-        //std::vector<int> torso_joint_indices;
-        //getRelevantJointIndicesTorso(torso_joint_indices);
+        std::vector<int> torso_joint_indices;
+        getRelevantJointIndicesTorso(torso_joint_indices);
         // get relevant configuration values for spine
-        //dynacore::Vector q_spine;
-        //selectRelevantJointsConfiguration(q, torso_joint_indices, q_spine);
+        dynacore::Vector q_spine;
+        selectRelevantJointsConfiguration(q, torso_joint_indices, q_spine);
         // construct and set spine message
-        //makeIHMCSpineTrajectoryMessage(q_spine, wholebody_msg.spine_trajectory_message, msg_params);
+        makeIHMCSpineTrajectoryMessage(q_spine, wholebody_msg.spine_trajectory_message, msg_params);
+        */
 
         // PELVIS TRAJECTORY
         // get relevant joint indices for pelvis
@@ -396,6 +403,15 @@ namespace IHMCMsgUtils {
         makeIHMCPelvisTrajectoryMessage(q_pelvis, wholebody_msg.pelvis_trajectory_message, msg_params);
 
         // FOOT TRAJECTORIES
+        /*
+         * NOTE: foot trajectories will be complicated to send because
+         * IHMC interface has safety features to prevent moving feet when robot is already standing;
+         * the code below has been tested in sim and it does seem to move the feet,
+         * but not accurately due to balance issues;
+         * sending foot trajectories also seems to interfere with arms,
+         * so code is commented out since we will trust the robot to balance on its own
+         */
+        /*
         // get poses of feet induced by configuration
         dynacore::Vect3 lfoot_pos;
         dynacore::Quaternion lfoot_quat;
@@ -403,13 +419,14 @@ namespace IHMCMsgUtils {
         dynacore::Quaternion rfoot_quat;
         getFeetPoses(q, lfoot_pos, lfoot_quat, rfoot_pos, rfoot_quat);
         // construct and set left foot message
-        //makeIHMCFootTrajectoryMessage(lfoot_pos, lfoot_quat, // TODO
-        //                              wholebody_msg.left_foot_trajectory_message,
-        //                              0, msg_params);
+        makeIHMCFootTrajectoryMessage(lfoot_pos, lfoot_quat, // TODO
+                                      wholebody_msg.left_foot_trajectory_message,
+                                      0, msg_params);
         // construct and set right foot message
-        //makeIHMCFootTrajectoryMessage(rfoot_pos, rfoot_quat, // TODO
-        //                              wholebody_msg.left_foot_trajectory_message,
-        //                              1, msg_params);
+        makeIHMCFootTrajectoryMessage(rfoot_pos, rfoot_quat, // TODO
+                                      wholebody_msg.left_foot_trajectory_message,
+                                      1, msg_params);
+        */
 
         // NECK TRAJECTORY
         // get relevant joint indices for neck
