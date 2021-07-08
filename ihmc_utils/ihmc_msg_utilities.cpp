@@ -240,7 +240,7 @@ namespace IHMCMsgUtils {
     }
 
     void makeIHMCSO3TrajectoryMessage(dynacore::Quaternion quat,
-                                      controller_msgs::SO3TrajectoryMessage so3_msg,
+                                      controller_msgs::SO3TrajectoryMessage& so3_msg,
                                       int trajectory_reference_frame_id,
                                       int data_reference_frame_id,
                                       IHMCMessageParameters msg_params) {
@@ -338,6 +338,9 @@ namespace IHMCMsgUtils {
     void makeIHMCWholeBodyTrajectoryMessage(dynacore::Vector q,
                                             controller_msgs::WholeBodyTrajectoryMessage& wholebody_msg,
                                             IHMCMessageParameters msg_params) {
+        // set sequence id
+        wholebody_msg.sequence_id = msg_params.sequence_id;
+        
         // HAND TRAJECTORIES (not needed)
         // do not set trajectory for left hand: wholebody_msg.left_hand_trajectory_message
         // do not set trajectory for right hand: wholebody_msg.right_hand_trajectory_message
@@ -365,22 +368,22 @@ namespace IHMCMsgUtils {
                                      wholebody_msg.right_arm_trajectory_message,
                                      1, msg_params);
 
-        // CHEST TRAJECTORY // TODO WHICH ONE DO I DO???
+        // CHEST TRAJECTORY
         // get orientation of chest induced by configuration
         dynacore::Quaternion chest_quat;
         getChestOrientation(q, chest_quat);
         // construct and set chest message
         makeIHMCChestTrajectoryMessage(chest_quat, wholebody_msg.chest_trajectory_message, msg_params);
 
-        // SPINE TRAJECTORY // TODO WHICH ONE DO I DO???
+        // SPINE TRAJECTORY
         // get relevant joint indices for spine
-        std::vector<int> torso_joint_indices;
-        getRelevantJointIndicesTorso(torso_joint_indices);
+        //std::vector<int> torso_joint_indices;
+        //getRelevantJointIndicesTorso(torso_joint_indices);
         // get relevant configuration values for spine
-        dynacore::Vector q_spine;
-        selectRelevantJointsConfiguration(q, torso_joint_indices, q_spine);
+        //dynacore::Vector q_spine;
+        //selectRelevantJointsConfiguration(q, torso_joint_indices, q_spine);
         // construct and set spine message
-        makeIHMCSpineTrajectoryMessage(q_spine, wholebody_msg.spine_trajectory_message, msg_params);
+        //makeIHMCSpineTrajectoryMessage(q_spine, wholebody_msg.spine_trajectory_message, msg_params);
 
         // PELVIS TRAJECTORY
         // get relevant joint indices for pelvis
@@ -400,13 +403,13 @@ namespace IHMCMsgUtils {
         dynacore::Quaternion rfoot_quat;
         getFeetPoses(q, lfoot_pos, lfoot_quat, rfoot_pos, rfoot_quat);
         // construct and set left foot message
-        makeIHMCFootTrajectoryMessage(lfoot_pos, lfoot_quat,
-                                      wholebody_msg.left_foot_trajectory_message,
-                                      0, msg_params);
+        //makeIHMCFootTrajectoryMessage(lfoot_pos, lfoot_quat, // TODO
+        //                              wholebody_msg.left_foot_trajectory_message,
+        //                              0, msg_params);
         // construct and set right foot message
-        makeIHMCFootTrajectoryMessage(rfoot_pos, rfoot_quat,
-                                      wholebody_msg.left_foot_trajectory_message,
-                                      1, msg_params);
+        //makeIHMCFootTrajectoryMessage(rfoot_pos, rfoot_quat, // TODO
+        //                              wholebody_msg.left_foot_trajectory_message,
+        //                              1, msg_params);
 
         // NECK TRAJECTORY
         // get relevant joint indices for neck
@@ -526,7 +529,18 @@ namespace IHMCMsgUtils {
 
         // push back relevant joint positions
         for( int i = 0 ; i < joint_indices.size() ; i++ ) {
-            q_joints[i] = q[joint_indices[i]];
+            // check for special index -1
+            if( joint_indices[i] == -1 ) {
+                // special index -1 indicates that joint is not included in valkyrie definition,
+                // but is needed in the wholebody message
+                // set joint position to 0
+                q_joints[i] = 0.0;
+            }
+            else {
+                // joint position exists in valkyrie definition
+                // set based on given configuration
+                q_joints[i] = q[joint_indices[i]];
+            }
         }
 
         return;
@@ -600,6 +614,10 @@ namespace IHMCMsgUtils {
         joint_indices.push_back(valkyrie_joint::leftShoulderYaw);
         joint_indices.push_back(valkyrie_joint::leftElbowPitch);
         joint_indices.push_back(valkyrie_joint::leftForearmYaw);
+        
+        // push back special joint index for left wrist; not included in valkyrie definition
+        joint_indices.push_back(-1); // leftWristRoll
+        joint_indices.push_back(-1); // leftWristPitch
 
         return;
     }
@@ -627,10 +645,14 @@ namespace IHMCMsgUtils {
         joint_indices.push_back(valkyrie_joint::rightElbowPitch);
         joint_indices.push_back(valkyrie_joint::rightForearmYaw);
         
+        // push back special joint index for right wrist; not included in valkyrie definition
+        joint_indices.push_back(-1); // rightWristRoll
+        joint_indices.push_back(-1); // rightWristPitch
+        
         return;
     }
 
-    void getChestOrientation(dynacore::Vector q, dynacore::Quaternion chest_quat) {
+    void getChestOrientation(dynacore::Vector q, dynacore::Quaternion& chest_quat) {
         // construct robot model
         std::shared_ptr<Valkyrie_Model> robot_model(new Valkyrie_Model);
 

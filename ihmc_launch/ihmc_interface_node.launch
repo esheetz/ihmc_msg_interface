@@ -13,7 +13,7 @@
 	<arg unless="$(arg debug)" name="launch_prefix" value="" />
 	<arg if="$(arg debug)" name="launch_prefix" value="xterm -e gdb **args" />
 
-	<node launch-prefix="$(arg launch_prefix)" pkg="val_dynacore" type="ihmc_interface_node" name="IHMCInterfaceNode" output="screen"> <!-- TODO package? -->
+	<node launch-prefix="$(arg launch_prefix)" pkg="IHMCMsgInterface" type="ihmc_interface_node" name="IHMCInterfaceNode" output="screen">
 		<!--<param name="" type="" value=""/> -->
 	</node>
 </launch>

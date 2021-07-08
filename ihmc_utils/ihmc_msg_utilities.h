@@ -298,7 +298,7 @@ namespace IHMCMsgUtils {
      * @post so3_msg populated based on the given orientation
      */
     void makeIHMCSO3TrajectoryMessage(dynacore::Quaternion quat,
-                                      controller_msgs::SO3TrajectoryMessage so3_msg,
+                                      controller_msgs::SO3TrajectoryMessage& so3_msg,
                                       int trajectory_reference_frame_id,
                                       int data_reference_frame_id,
                                       IHMCMessageParameters msg_params);
@@ -465,7 +465,6 @@ namespace IHMCMsgUtils {
     void getRelevantJointIndicesLeftArm(std::vector<int>& joint_indices);
     void getRelevantJointIndicesNeck(std::vector<int>& joint_indices);
     void getRelevantJointIndicesRightArm(std::vector<int>& joint_indices);
-    // TODO make sure joints are pushed in correct order for IHMC messages
 
     /*
      * get the {orientation/poses} of the {chest/pelvis/feet} induced by the given configuration
@@ -477,7 +476,7 @@ namespace IHMCMsgUtils {
      * @return none
      * @post given {orientation/pose} information updated based on given configuration
      */
-    void getChestOrientation(dynacore::Vector q, dynacore::Quaternion chest_quat);
+    void getChestOrientation(dynacore::Vector q, dynacore::Quaternion& chest_quat);
     void getPelvisPose(dynacore::Vector q_joints,
                        dynacore::Vect3& pelvis_pos, dynacore::Quaternion& pelvis_quat);
     void getFeetPoses(dynacore::Vector q,
