@@ -175,7 +175,7 @@ namespace IHMCMsgUtils {
         se3_msg.use_custom_control_frame = msg_params.use_custom_control_frame;
 
         // construct and set custom control frame pose (setting pose to all zeros)
-        makeZeroPoseMessage(se3_msg.control_frame_pose);
+        ROSMsgUtils::makeZeroPoseMessage(se3_msg.control_frame_pose);
 
         // construct and set queueing properties message
         makeIHMCQueueableMessage(se3_msg.queueing_properties, msg_params);
@@ -215,14 +215,14 @@ namespace IHMCMsgUtils {
         se3_point_msg.time = msg_params.time;
 
         // set position based on given position
-        makePointMessage(pos, se3_point_msg.position);
+        ROSMsgUtils::makePointMessage(pos, se3_point_msg.position);
 
         // set orientation based on given orientation
-        makeQuaternionMessage(quat, se3_point_msg.orientation);
+        ROSMsgUtils::makeQuaternionMessage(quat, se3_point_msg.orientation);
 
         // set linear and angular velocity to zero
-        makeZeroVector3Message(se3_point_msg.linear_velocity);
-        makeZeroVector3Message(se3_point_msg.angular_velocity);
+        ROSMsgUtils::makeZeroVector3Message(se3_point_msg.linear_velocity);
+        ROSMsgUtils::makeZeroVector3Message(se3_point_msg.angular_velocity);
 
         return;
     }
@@ -249,7 +249,7 @@ namespace IHMCMsgUtils {
         so3_msg.use_custom_control_frame = msg_params.use_custom_control_frame;
 
         // construct and set custom control frame pose (setting pose to all zeros)
-        makeZeroPoseMessage(so3_msg.control_frame_pose);
+        ROSMsgUtils::makeZeroPoseMessage(so3_msg.control_frame_pose);
 
         // construct and set queueing properties message
         makeIHMCQueueableMessage(so3_msg.queueing_properties, msg_params);
@@ -287,10 +287,10 @@ namespace IHMCMsgUtils {
         so3_point_msg.time = msg_params.time;
 
         // set quaternion based on given orientation
-        makeQuaternionMessage(quat, so3_point_msg.orientation);
+        ROSMsgUtils::makeQuaternionMessage(quat, so3_point_msg.orientation);
 
         // set angular velocity to zero
-        makeZeroVector3Message(so3_point_msg.angular_velocity);
+        ROSMsgUtils::makeZeroVector3Message(so3_point_msg.angular_velocity);
 
         return;
     }
@@ -440,98 +440,6 @@ namespace IHMCMsgUtils {
 
         // HEAD TRAJECTORY
         // do not set trajectory for head: wholebody_msg.head_trajectory_message
-
-        return;
-    }
-
-    // FUNCTIONS FOR MAKING ROS MESSAGES
-    void makePointMessage(dynacore::Vect3 pos,
-                          geometry_msgs::Point& point_msg) {
-        // set point
-        point_msg.x = pos[0];
-        point_msg.y = pos[1];
-        point_msg.z = pos[2];
-
-        return;
-    }
-
-    void makeZeroPointMessage(geometry_msgs::Point& point_msg) {
-        // set point with all zeros
-        point_msg.x = 0.0;
-        point_msg.y = 0.0;
-        point_msg.z = 0.0;
-
-        return;
-    }
-
-    void makePoseMessage(dynacore::Vect3 pos,
-                         dynacore::Quaternion quat,
-                         geometry_msgs::Pose& pose_msg) {
-        // set position
-        makePointMessage(pos, pose_msg.position);
-
-        // set orientation
-        makeQuaternionMessage(quat, pose_msg.orientation);
-
-        return;
-    }
-
-    void makeZeroPoseMessage(geometry_msgs::Pose& pose_msg) {
-        // set position as zero
-        makeZeroPointMessage(pose_msg.position);
-
-        // set quaternion as zero
-        makeZeroQuaternionMessage(pose_msg.orientation);
-
-        return;
-    }
-
-    void makeQuaternionMessage(dynacore::Quaternion quat,
-                               geometry_msgs::Quaternion& quat_msg) {
-        // set quaternion
-        quat_msg.x = quat.x();
-        quat_msg.y = quat.y();
-        quat_msg.z = quat.z();
-        quat_msg.w = quat.w();
-
-        return;
-    }
-
-    void makeZeroQuaternionMessage(geometry_msgs::Quaternion& quat_msg) {
-        // set quaternion with all zeros
-        quat_msg.x = 0.0;
-        quat_msg.y = 0.0;
-        quat_msg.z = 0.0;
-        quat_msg.w = 0.0;
-
-        return;
-    }
-
-    void makeIdentityQuaternionMessage(geometry_msgs::Quaternion& quat_msg) {
-        // set identity quaternion
-        quat_msg.x = 0.0;
-        quat_msg.y = 0.0;
-        quat_msg.z = 0.0;
-        quat_msg.w = 1.0;
-
-        return;
-    }
-
-    void makeVector3Message(dynacore::Vect3 vec,
-                            geometry_msgs::Vector3& vec_msg) {
-        // set vector
-        vec_msg.x = vec[0];
-        vec_msg.y = vec[1];
-        vec_msg.z = vec[2];
-
-        return;
-    }
-
-    void makeZeroVector3Message(geometry_msgs::Vector3& vec_msg) {
-        // set vector with all zeros
-        vec_msg.x = 0.0;
-        vec_msg.y = 0.0;
-        vec_msg.z = 0.0;
 
         return;
     }

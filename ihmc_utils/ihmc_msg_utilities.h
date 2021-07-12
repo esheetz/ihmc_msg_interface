@@ -7,13 +7,9 @@
 #include <memory>
 
 #include <Utils/wrap_eigen.hpp>
+#include <Utils/rosmsg_utils.hpp>
 #include <Valkyrie/Valkyrie_Definition.h>
 #include <Valkyrie/Valkyrie_Model.hpp>
-
-#include <geometry_msgs/Point.h>
-#include <geometry_msgs/PoseStamped.h>
-#include <geometry_msgs/Quaternion.h>
-#include <geometry_msgs/Vector3.h>
 
 #include <controller_msgs/ArmTrajectoryMessage.h>
 #include <controller_msgs/ChestTrajectoryMessage.h>
@@ -37,6 +33,7 @@
 namespace IHMCMsgUtils {
 
     void testFunction();
+    
     // STRUCT FOR SETTING MESSAGE PARAMETERS
     struct IHMCMessageParameters {
         // MEMBERS OF STRUCT
@@ -360,84 +357,6 @@ namespace IHMCMsgUtils {
     void makeIHMCWholeBodyTrajectoryMessage(dynacore::Vector q,
                                             controller_msgs::WholeBodyTrajectoryMessage& wholebody_msg,
                                             IHMCMessageParameters msg_params);
-
-    // FUNCTIONS FOR MAKING ROS MESSAGES
-    /*
-     * makes a Point message from the given position
-     * @param pos, the desired position
-     * @param point_msg, the message to be populated
-     * @return none
-     * @post point_msg populated based on the given position
-     */
-    void makePointMessage(dynacore::Vect3 pos,
-                          geometry_msgs::Point& point_msg);
-
-    /*
-     * makes a Point message with all zeros
-     * @return none
-     * @post poing_msg populated with all zeros
-     */
-    void makeZeroPointMessage(geometry_msgs::Point& point_msg);
-
-    /*
-     * makes a Pose message from the given position and orientation
-     * @param pos, the desired position
-     * @param quat, the desired orientation
-     * @param pose_msg, the message to be populated
-     * @return none
-     * @post pose_msg populated based on the given pose
-     */
-    void makePoseMessage(dynacore::Vect3 pos,
-                         dynacore::Quaternion quat,
-                         geometry_msgs::Pose& pose_msg);
-
-    /*
-     * makes a Pose message with all zeros
-     * @return none
-     * @post pose_msg populated with all zeros
-     */
-    void makeZeroPoseMessage(geometry_msgs::Pose& pose_msg);
-
-    /*
-     * makes a Quaternion message from the given orientation
-     * @param quat, the desired orientation
-     * @param quat_msg, the message to be populated
-     * @return none
-     * @post quat_msg populated based on the given position
-     */
-    void makeQuaternionMessage(dynacore::Quaternion quat,
-                               geometry_msgs::Quaternion& quat_msg);
-
-    /*
-     * makes a Quaternion message with all zeros
-     * @return none
-     * @post quat_msg populated with all zeros
-     */
-    void makeZeroQuaternionMessage(geometry_msgs::Quaternion& quat_msg);
-
-    /*
-     * makes a Quaternion message with identity quaternion
-     * @return none
-     * @post quat_msg populated with identity quaternion
-     */
-    void makeIdentityQuaternionMessage(geometry_msgs::Quaternion& quat_msg);
-
-    /*
-     * makes a Vector3 message from the given 3D vector
-     * @param vec, the desired 3D vector
-     * @param vec_msg, the message to be populated
-     * @return none
-     * @post vec_msg populated based on the given position
-     */
-    void makeVector3Message(dynacore::Vect3 vec,
-                            geometry_msgs::Vector3& vec_msg);
-
-    /*
-     * makes a Vector3 message with all zeros
-     * @return none
-     * @post vec_msg populated with all zeros
-     */
-    void makeZeroVector3Message(geometry_msgs::Vector3& vec_msg);
 
     // HELPER FUNCTIONS
     /*
