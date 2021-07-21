@@ -49,7 +49,9 @@ private:
     ros::Publisher test_publisher_; // publisher // TODO
     int test_counter_ = 0; // TODO
 
+    std::string pelvis_tf_topic_; // topic to subscribe to for listening to pelvis transforms
     ros::Subscriber pelvis_transform_sub_; // subscriber for listening for pelvis transforms in world frame
+    std::string joint_command_topic_; // topic to subscribe to for listening to joint commands
     ros::Subscriber joint_command_sub_; // subscriber for listening for joint commands
 
     ros::Publisher wholebody_pub_; // publisher for wholebody messages

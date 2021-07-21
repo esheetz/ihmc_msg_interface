@@ -9,6 +9,12 @@
 IHMCInterfaceNode::IHMCInterfaceNode(const ros::NodeHandle& nh) {
     nh_ = nh;
 
+    // set up parameters
+    nh_.param("joint_command_topic", joint_command_topic_,
+              std::string("/IKModuleTestNode/nstgro20_valkyrie_ik/joint_commands")); // TODO change default
+    nh_.param("pelvis_tf_topic", pelvis_tf_topic_,
+              std::string("/IKModuleTestNode/nstgro20_valkyrie_ik/pelvis_transform")); // TODO change default
+
     initializeConnections();
 
     // initialize flags for receiving and publishing messages
@@ -27,8 +33,8 @@ IHMCInterfaceNode::~IHMCInterfaceNode() {
 bool IHMCInterfaceNode::initializeConnections() {
     test_publisher_ = nh_.advertise<std_msgs::String>("/test_topic", 1); // TODO
 
-    pelvis_transform_sub_ = nh_.subscribe("/IKModuleTestNode/nstgro20_valkyrie_ik/pelvis_transform", 1, &IHMCInterfaceNode::transformCallback, this);  // TODO TOPICS
-    joint_command_sub_ = nh_.subscribe("/IKModuleTestNode/nstgro20_valkyrie_ik/joint_commands", 1, &IHMCInterfaceNode::jointCommandCallback, this);  // TODO TOPICS
+    pelvis_transform_sub_ = nh_.subscribe(pelvis_tf_topic_, 1, &IHMCInterfaceNode::transformCallback, this);
+    joint_command_sub_ = nh_.subscribe(joint_command_topic_, 1, &IHMCInterfaceNode::jointCommandCallback, this);
     wholebody_pub_ = nh_.advertise<controller_msgs::WholeBodyTrajectoryMessage>("/ihmc/valkyrie/humanoid_control/input/whole_body_trajectory", 1);
 
     return true;
