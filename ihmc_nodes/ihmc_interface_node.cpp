@@ -10,6 +10,7 @@ IHMCInterfaceNode::IHMCInterfaceNode(const ros::NodeHandle& nh) {
     nh_ = nh;
 
     // set up parameters
+    nh_.param("commands_from_controllers", commands_from_controllers_, false); // TODO change default
     nh_.param("joint_command_topic", joint_command_topic_,
               std::string("/IKModuleTestNode/nstgro20_valkyrie_ik/joint_commands")); // TODO change default
     nh_.param("pelvis_tf_topic", pelvis_tf_topic_,
@@ -109,6 +110,12 @@ void IHMCInterfaceNode::publishWholeBodyMessage() {
 
     // initialize struct of default IHMC message parameters
     IHMCMsgUtils::IHMCMessageParameters msg_params;
+
+    // if commands are coming from controllers, default message parameters will need to be changed
+    if( commands_from_controllers_ ) {
+        //msg_params.execution_mode = 2; // queue messages as part of stream
+        msg_params.time = 1.0; // shorten time, since controller commands should be quick
+    }
 
     // create whole body message
     controller_msgs::WholeBodyTrajectoryMessage wholebody_msg;

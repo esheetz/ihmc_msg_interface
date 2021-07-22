@@ -56,6 +56,7 @@ private:
 
     ros::Publisher wholebody_pub_; // publisher for wholebody messages
 
+    bool commands_from_controllers_; // flag indicating whether joint commands are coming from controllers (affects queueing properties of messages)
     bool receive_pelvis_transform_; // flag indicating whether to accept new transforms
     bool receive_joint_commands_; // flag indicating whether to accept new joint commands
 

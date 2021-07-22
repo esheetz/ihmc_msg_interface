@@ -9,6 +9,7 @@
 		$ rosrun val_dynacore ihmc_interface_node
 ************************************************************-->
 <launch>
+	<arg name="controllers" default="false"/> <!-- indicates if joint commands come from controllers; will change queueing properties of IHMC messages --> <!-- TODO change default? -->
 	<arg name="joint_command_topic" default="/IKModuleTestNode/nstgro20_valkyrie_ik/joint_commands"/> <!-- TODO change default -->
 	<arg name="pelvis_tf_topic" default="/IKModuleTestNode/nstgro20_valkyrie_ik/pelvis_transform"/> <!-- TODO change default? -->
 
@@ -17,6 +18,7 @@
 	<arg if="$(arg debug)" name="launch_prefix" value="xterm -e gdb **args" />
 
 	<node launch-prefix="$(arg launch_prefix)" pkg="IHMCMsgInterface" type="ihmc_interface_node" name="IHMCInterfaceNode" output="screen">
+		<param name="commands_from_controllers" value="$(arg controllers)"/>
 		<param name="joint_command_topic" value="$(arg joint_command_topic)"/>
 		<param name="pelvis_tf_topic" value="$(arg pelvis_tf_topic)"/>
 		<!--<param name="" type="" value=""/> -->
