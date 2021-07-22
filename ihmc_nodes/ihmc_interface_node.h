@@ -38,6 +38,9 @@ public:
     void publishWholeBodyMessage();
 
     // HELPER FUNCTIONS
+    bool getCommandsFromControllersFlag();
+    bool getPublishCommandsFlag();
+    void updatePublishCommandsFlag();
     bool getStopNodeFlag();
     void updateStopNodeFlag();
     void prepareConfigurationVector();
@@ -57,9 +60,11 @@ private:
     ros::Publisher wholebody_pub_; // publisher for wholebody messages
 
     bool commands_from_controllers_; // flag indicating whether joint commands are coming from controllers (affects queueing properties of messages)
-    bool receive_pelvis_transform_; // flag indicating whether to accept new transforms
-    bool receive_joint_commands_; // flag indicating whether to accept new joint commands
-
+    bool receive_pelvis_transform_; // flag indicating whether to accept pelvis transforms
+    bool received_pelvis_transform_; // flag indicating whether pelvis transform has been received
+    bool receive_joint_command_; // flag indicating whether to accept new joint commands
+    bool received_joint_command_; // flag indicating whether joint command has been received
+    bool publish_commands_; // flag indicating if joint and pelvis information has been received and whole body message can be published
     bool stop_node_; // flag indicating when to publish whole body messages
 
     dynacore::Vector q_joint_; // vector of commanded joint positions

@@ -20,7 +20,10 @@ IHMCInterfaceNode::IHMCInterfaceNode(const ros::NodeHandle& nh) {
 
     // initialize flags for receiving and publishing messages
     receive_pelvis_transform_ = true;
-    receive_joint_commands_ = true;
+    received_pelvis_transform_ = false;
+    receive_joint_command_ = true;
+    received_joint_command_ = false;
+    publish_commands_ = false;
     stop_node_ = false;
 
     std::cout << "[IHMC Interface Node] Constructed" << std::endl;
@@ -55,9 +58,17 @@ void IHMCInterfaceNode::transformCallback(const geometry_msgs::TransformStamped&
                                              tf_msg.transform.rotation.w);
         tf_pelvis_wrt_world_.setRotation(quat_pelvis_wrt_world);
 
+        // set flag indicating pelvis transform has been received
+        received_pelvis_transform_ = true;
+        
         // set flag to no longer receive transform messages
-        receive_pelvis_transform_ = false;
+        if( !commands_from_controllers_ ) {
+            receive_pelvis_transform_ = false;
+        }
     }
+    
+    // update flag to publish commands
+    updatePublishCommandsFlag();
 
     // update flag to stop node
     updateStopNodeFlag();
@@ -66,7 +77,7 @@ void IHMCInterfaceNode::transformCallback(const geometry_msgs::TransformStamped&
 }
 
 void IHMCInterfaceNode::jointCommandCallback(const sensor_msgs::JointState& js_msg) {
-    if( receive_joint_commands_ ) {
+    if( receive_joint_command_ ) {
         // resize vector for joint positions
         q_joint_.resize(valkyrie::num_act_joint);
         q_joint_.setZero();
@@ -75,13 +86,21 @@ void IHMCInterfaceNode::jointCommandCallback(const sensor_msgs::JointState& js_m
         for( int i = 0 ; i < js_msg.position.size(); i++ ) {
             // joint state message may publish joints in an order not expected by configuration vector
             // set index for joint based on joint name; add offset to ignoring virtual joints
-            int jidx = valkyrie::joint_names_to_indices[js_msg.name[i]] - valkyrie::num_virtual;
+            int jidx = val::joint_names_to_indices[js_msg.name[i]] - valkyrie::num_virtual;
             q_joint_[jidx] = js_msg.position[i];
         }
+        
+        // set flag indicating joint command has been received
+        received_joint_command_ = true;
 
         // set flag to no longer receive joint command messages
-        receive_joint_commands_ = false;
+        if( !commands_from_controllers_ ) {
+            receive_joint_command_ = false;
+        }
     }
+    
+    // update flag to publish commands
+    updatePublishCommandsFlag();
 
     // update flag to stop node
     updateStopNodeFlag();
@@ -113,8 +132,8 @@ void IHMCInterfaceNode::publishWholeBodyMessage() {
 
     // if commands are coming from controllers, default message parameters will need to be changed
     if( commands_from_controllers_ ) {
-        //msg_params.execution_mode = 2; // queue messages as part of stream
-        msg_params.time = 1.0; // shorten time, since controller commands should be quick
+        msg_params.execution_mode = 2; // TODO? (0 override; 1 queue; 2 stream) queue messages as part of stream
+        msg_params.time = 0.0; // TODO shorten time (1.0 for queueing, 0.0 for streaming), since controller commands should be quick
     }
 
     // create whole body message
@@ -128,13 +147,28 @@ void IHMCInterfaceNode::publishWholeBodyMessage() {
 }
 
 // HELPER FUNCTIONS
+bool IHMCInterfaceNode::getCommandsFromControllersFlag() {
+    return commands_from_controllers_;
+}
+
+bool IHMCInterfaceNode::getPublishCommandsFlag() {
+    return publish_commands_;
+}
+
+void IHMCInterfaceNode::updatePublishCommandsFlag() {
+    // if pelvis and joint command both received, then commands can be published
+    publish_commands_ = received_pelvis_transform_ && received_joint_command_;
+    
+    return;
+}
+
 bool IHMCInterfaceNode::getStopNodeFlag() {
     return stop_node_;
 }
 
 void IHMCInterfaceNode::updateStopNodeFlag() {
-    // if pelvis and joint command both received, then prepare to stop node
-    stop_node_ = !receive_pelvis_transform_ && !receive_joint_commands_;
+    // if both pelvis and joint commands no longer being received, then prepare to stop node
+    stop_node_ = !receive_pelvis_transform_ && !receive_joint_command_;
 
     return;
 }
@@ -190,11 +224,21 @@ int main(int argc, char **argv) {
 
     ros::Rate rate(10);
     while( ros::ok() ) {
-        if( ihmc_interface_node.getStopNodeFlag() ) {
-            ROS_INFO("Preparing and executing whole body message...");
-            ihmc_interface_node.publishWholeBodyMessage();
-            ros::Duration(3.0).sleep();
-            break; // only publish one message, then stop
+    	if( ihmc_interface_node.getCommandsFromControllersFlag() && ihmc_interface_node.getPublishCommandsFlag() ) {
+    	    // if commands coming from controllers, consistently publish messages
+    	    ROS_INFO("Preparing and queueing whole body message...");
+    	    ihmc_interface_node.publishWholeBodyMessage();
+    	    // TODO will likely need to add additional status subscriber to publish initial and stopping messages in queue
+    	    // TODO will likely need to update controller node to read initial joint states from some publisher, since queueing messages will put internal robot model out of sync with actual state
+    	}
+    	else {
+    	    // otherwise, publish single wholebody message and exit node
+            if( ihmc_interface_node.getPublishCommandsFlag() && ihmc_interface_node.getStopNodeFlag() ) {
+                ROS_INFO("Preparing and executing whole body message...");
+                ihmc_interface_node.publishWholeBodyMessage();
+                ros::Duration(3.0).sleep();
+                break; // only publish one message, then stop
+            }
         }
         // ihmc_interface_node.publishTestMessage(); // TODO
         ros::spinOnce();
