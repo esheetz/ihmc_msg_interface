@@ -262,9 +262,9 @@ int main(int argc, char **argv) {
         // if commands coming from controllers, consistently publish messages until controllers converge
     	if( ihmc_interface_node.getCommandsFromControllersFlag() && ihmc_interface_node.getPublishCommandsFlag() ) {
     	    // ready to publish commands
-    	    ROS_INFO("Preparing and queueing whole body message...");
+    	    ROS_INFO("Preparing and streaming whole body message..."); // TODO streaming or queueing?
     	    ihmc_interface_node.publishWholeBodyMessage();
-    	    // TODO will likely need to update controller node to read initial joint states from some publisher, since queueing messages will put internal robot model out of sync with actual state
+    	    // TODO may need to update controller node to read initial joint states from some publisher, since queueing messages will put internal robot model out of sync with actual state
     	}
     	else {
     	    // otherwise, publish single wholebody message and exit node
