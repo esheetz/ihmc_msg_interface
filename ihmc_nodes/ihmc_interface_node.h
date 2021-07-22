@@ -12,6 +12,7 @@
 #include <Valkyrie/Valkyrie_Definition.h>
 #include <Valkyrie/Valkyrie_Model.hpp>
 #include <ros/ros.h>
+#include <std_msgs/String.h>
 #include <sensor_msgs/JointState.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <tf/tf.h>
@@ -30,6 +31,7 @@ public:
     // CALLBACKS
     void transformCallback(const geometry_msgs::TransformStamped& tf_msg);
     void jointCommandCallback(const sensor_msgs::JointState& js_msg);
+    void statusCallback(const std_msgs::String& status_msg);
 
     // TESTING FUNCTIONS
     void publishTestMessage(); // TODO
@@ -38,6 +40,7 @@ public:
     void publishWholeBodyMessage();
 
     // HELPER FUNCTIONS
+    std::string getStatus();
     bool getCommandsFromControllersFlag();
     bool getPublishCommandsFlag();
     void updatePublishCommandsFlag();
@@ -56,6 +59,9 @@ private:
     ros::Subscriber pelvis_transform_sub_; // subscriber for listening for pelvis transforms in world frame
     std::string joint_command_topic_; // topic to subscribe to for listening to joint commands
     ros::Subscriber joint_command_sub_; // subscriber for listening for joint commands
+    std::string status_topic_; // topic to subscribe to for listening to statuses
+    ros::Subscriber status_sub_; // subscriber for listening to statuses
+    std::string status_; // string indicating current status
 
     ros::Publisher wholebody_pub_; // publisher for wholebody messages
 
