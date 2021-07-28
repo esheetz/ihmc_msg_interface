@@ -419,11 +419,11 @@ namespace IHMCMsgUtils {
         dynacore::Quaternion rfoot_quat;
         getFeetPoses(q, lfoot_pos, lfoot_quat, rfoot_pos, rfoot_quat);
         // construct and set left foot message
-        makeIHMCFootTrajectoryMessage(lfoot_pos, lfoot_quat, // TODO
+        makeIHMCFootTrajectoryMessage(lfoot_pos, lfoot_quat,
                                       wholebody_msg.left_foot_trajectory_message,
                                       0, msg_params);
         // construct and set right foot message
-        makeIHMCFootTrajectoryMessage(rfoot_pos, rfoot_quat, // TODO
+        makeIHMCFootTrajectoryMessage(rfoot_pos, rfoot_quat,
                                       wholebody_msg.left_foot_trajectory_message,
                                       1, msg_params);
         */

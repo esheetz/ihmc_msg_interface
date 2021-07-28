@@ -6,9 +6,6 @@
 #ifndef _IHMC_INTERFACE_NODE_H_
 #define _IHMC_INTERFACE_NODE_H_
 
-#include <sstream> // for testing purposes only // TODO
-#include <std_msgs/String.h> // for testing purposes only // TODO
-
 #include <Valkyrie/Valkyrie_Definition.h>
 #include <Valkyrie/Valkyrie_Model.hpp>
 #include <ros/ros.h>
@@ -33,9 +30,6 @@ public:
     void jointCommandCallback(const sensor_msgs::JointState& js_msg);
     void statusCallback(const std_msgs::String& status_msg);
 
-    // TESTING FUNCTIONS
-    void publishTestMessage(); // TODO
-
     // PUBLISH MESSAGE
     void publishWholeBodyMessage();
 
@@ -50,10 +44,6 @@ public:
 
 private:
     ros::NodeHandle nh_; // node handler
-
-    // TESTING VARIABLES
-    ros::Publisher test_publisher_; // publisher // TODO
-    int test_counter_ = 0; // TODO
 
     std::string pelvis_tf_topic_; // topic to subscribe to for listening to pelvis transforms
     ros::Subscriber pelvis_transform_sub_; // subscriber for listening for pelvis transforms in world frame

@@ -10,13 +10,13 @@ IHMCInterfaceNode::IHMCInterfaceNode(const ros::NodeHandle& nh) {
     nh_ = nh;
 
     // set up parameters
-    nh_.param("commands_from_controllers", commands_from_controllers_, false); // TODO change default
-    nh_.param("joint_command_topic", joint_command_topic_,
-              std::string("/IKModuleTestNode/nstgro20_valkyrie_ik/joint_commands")); // TODO change default
+    nh_.param("commands_from_controllers", commands_from_controllers_, true);
     nh_.param("pelvis_tf_topic", pelvis_tf_topic_,
-              std::string("/IKModuleTestNode/nstgro20_valkyrie_ik/pelvis_transform")); // TODO change default
+              std::string("/ControllerTestNode/controllers/output/ihmc/pelvis_transform"));
+    nh_.param("joint_command_topic", joint_command_topic_,
+              std::string("/ControllerTestNode/controllers/output/ihmc/joint_commands"));
     nh_.param("status_topic", status_topic_,
-              std::string("/ControllerTestNode/controllers/status")); // TODO change default
+              std::string("/ControllerTestNode/controllers/output/ihmc/controller_status"));
 
     initializeConnections();
 
@@ -40,11 +40,12 @@ IHMCInterfaceNode::~IHMCInterfaceNode() {
 
 // CONNECTIONS
 bool IHMCInterfaceNode::initializeConnections() {
-    test_publisher_ = nh_.advertise<std_msgs::String>("/test_topic", 1); // TODO
-
+    // subscribers for receiving whole-body information
     pelvis_transform_sub_ = nh_.subscribe(pelvis_tf_topic_, 1, &IHMCInterfaceNode::transformCallback, this);
     joint_command_sub_ = nh_.subscribe(joint_command_topic_, 1, &IHMCInterfaceNode::jointCommandCallback, this);
     status_sub_ = nh_.subscribe(status_topic_, 1, &IHMCInterfaceNode::statusCallback, this);
+
+    // publishers for sending whole-body messages
     wholebody_pub_ = nh_.advertise<controller_msgs::WholeBodyTrajectoryMessage>("/ihmc/valkyrie/humanoid_control/input/whole_body_trajectory", 1);
 
     return true;
@@ -136,20 +137,6 @@ void IHMCInterfaceNode::statusCallback(const std_msgs::String& status_msg) {
         ROS_INFO("Waiting for status change to receive more joint commands...");  	            
         // TODO publish a final (empty) message to stop the stream of messages?
     }
-    return;
-}
-
-// TESTING FUNCTIONS
-void IHMCInterfaceNode::publishTestMessage() { // TODO
-    std_msgs::String msg;
-    std::stringstream ss;
-    ss << "hello world " << test_counter_;
-    msg.data = ss.str();
-
-    test_publisher_.publish(msg);
-
-    test_counter_++;
-
     return;
 }
 
@@ -264,7 +251,6 @@ int main(int argc, char **argv) {
     	    // ready to publish commands
     	    ROS_INFO("Preparing and streaming whole body message..."); // TODO streaming or queueing?
     	    ihmc_interface_node.publishWholeBodyMessage();
-    	    // TODO may need to update controller node to read initial joint states from some publisher, since queueing messages will put internal robot model out of sync with actual state
     	}
     	else {
     	    // otherwise, publish single wholebody message and exit node
@@ -275,7 +261,6 @@ int main(int argc, char **argv) {
                 break; // only publish one message, then stop
             }
         }
-        // ihmc_interface_node.publishTestMessage(); // TODO
         ros::spinOnce();
         rate.sleep();
     }
