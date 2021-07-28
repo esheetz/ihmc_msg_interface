@@ -12,11 +12,11 @@
 	<arg name="controllers" default="true"/> <!-- indicates if joint commands come from controllers; will change queueing properties of IHMC messages -->
 
 	<!-- if not testing with controllers, robot pose and joint states will come from IKModuleTestNode -->
-	<arg unless="$(controllers)" name="pelvis_tf_topic" value="/IKModuleTestNode/nstgro20_valkyrie_ik/pelvis_transform"/>
-	<arg unless="$(controllers)" name="joint_command_topic" value="/IKModuleTestNode/nstgro20_valkyrie_ik/joint_commands"/>
+	<arg unless="$(arg controllers)" name="pelvis_tf_topic" value="/IKModuleTestNode/nstgro20_valkyrie_ik/pelvis_transform"/>
+	<arg unless="$(arg controllers)" name="joint_command_topic" value="/IKModuleTestNode/nstgro20_valkyrie_ik/joint_commands"/>
 	<!-- if testing with controllers, robot pose and joint states will come from ControllerTestNode -->
-	<arg if="$(controllers)" name="pelvis_tf_topic" value="/ControllerTestNode/controllers/output/ihmc/pelvis_transform"/>
-	<arg if="$(controllers)" name="joint_command_topic" value="/ControllerTestNode/controllers/output/ihmc/joint_commands"/>
+	<arg if="$(arg controllers)" name="pelvis_tf_topic" value="/ControllerTestNode/controllers/output/ihmc/pelvis_transform"/>
+	<arg if="$(arg controllers)" name="joint_command_topic" value="/ControllerTestNode/controllers/output/ihmc/joint_commands"/>
 	<!-- <arg name="status_topic" default="/ControllerTestNode/controllers/output/ihmc/controller_status"/> -->
 
 	<arg name="debug" default="false"/>
@@ -28,7 +28,7 @@
 		<param name="joint_command_topic" value="$(arg joint_command_topic)"/>
 		<param name="pelvis_tf_topic" value="$(arg pelvis_tf_topic)"/>
 		<!-- only controllers will send statuses, otherwise status topic not needed -->
-		<param if="$(controllers)" name="status_topic" value="/ControllerTestNode/controllers/output/ihmc/controller_status"/>
+		<param if="$(arg controllers)" name="status_topic" value="/ControllerTestNode/controllers/output/ihmc/controller_status"/>
 		<!--<param name="" type="" value=""/> -->
 	</node>
 </launch>
