@@ -201,11 +201,11 @@ void IHMCInterfaceNode::publishWholeBodyMessage() {
     // if commands are coming from controllers, default message parameters will need to be changed
     if( commands_from_controllers_ ) {
         // set execution mode to streaming (0 override; 1 queue; 2 stream)
-        msg_params.execution_mode = 2; // TODO?
-        // set time to achieve trajectory point messages (1.0 for queueing, 0.0 for streaming)
-        msg_params.traj_point_params.time = 0.0; // TODO?
+        msg_params.queueable_params.execution_mode = 2; // TODO?
         // set stream integration duration (equal or slightly longer than interval between two consecutive messages, which should be coming in at 10 Hz or 0.1 secs)
         msg_params.queueable_params.stream_integration_duration = 0.13; // TODO?
+        // set time to achieve trajectory point messages (1.0 for queueing, 0.0 for streaming)
+        msg_params.traj_point_params.time = 0.0; // TODO?
         // set controlled links
         msg_params.controlled_links = controlled_links_;
     }

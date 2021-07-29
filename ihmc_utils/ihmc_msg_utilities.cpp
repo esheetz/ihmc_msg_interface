@@ -161,7 +161,11 @@ namespace IHMCMsgUtils {
         // set execution mode and message id
         q_msg.execution_mode = msg_params.queueable_params.execution_mode;
         q_msg.message_id = msg_params.queueable_params.message_id;
-        q_msg.previous_message_id = msg_params.queuable_params.previous_message_id;
+
+        // if queueing messages, set previous message id
+        if( msg_params.queueable_params.execution_mode == 1 ) {
+            q_msg.previous_message_id = msg_params.queueable_params.previous_message_id;
+        }
 
         // if streaming messages, set integration duration
         if( msg_params.queueable_params.execution_mode == 2 ) {
@@ -169,9 +173,9 @@ namespace IHMCMsgUtils {
         }
 
         // get current time for timestamp
-        int t = std::chrono::system_clock::now();
+        auto t = std::chrono::system_clock::now();
         // set timestamp in nanoseconds when the message was created
-        q_msg.timestamp = std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch().count());
+        q_msg.timestamp = std::chrono::duration_cast<std::chrono::nanoseconds>(t.time_since_epoch()).count();
 
         return;
     }
@@ -680,7 +684,7 @@ namespace IHMCMsgUtils {
         std::vector<int>::iterator it;
         it = std::find(controlled_links.begin(), controlled_links.end(), link_id);
 
-        return (it != msg_params.controlled_links.end());
+        return (it != controlled_links.end());
     }
 
 } // end namespace IHMCMsgUtilities

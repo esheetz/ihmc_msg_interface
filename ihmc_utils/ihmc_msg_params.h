@@ -79,7 +79,7 @@ namespace IHMCMsgUtils {
         // message id for queued queueable messages; default -1, only needs to be set if another message is queued
         int message_id;
 
-        // id of previous message for queued queueable messages; default // TODO DEFAULT?!
+        // id of previous message for queued queueable messages; default 0?
         int previous_message_id;
 
         // integration duration (s) for streamed queuable messages; helps smooth out delays between messages
@@ -149,7 +149,7 @@ namespace IHMCMsgUtils {
             y_weight = -1.0;
             z_weight = -1.0;
         }
-    }
+    };
 
     // STRUCT FOR TRAJECTORY POINT MESSAGE PARAMETERS
     struct IHMCTrajectoryPointParams {
@@ -176,7 +176,7 @@ namespace IHMCMsgUtils {
         IHMCOneDoFJointTrajectoryParams onedof_joint_params;
         IHMCPelvisTrajectoryParams pelvis_params;
         IHMCQueueableParams queueable_params;
-        IHMCSE3SO3Params se3so3_param;
+        IHMCSE3SO3Params se3so3_params;
         IHMCSelectionMatrixParams selection_matrix_params;
         IHMCWeightMatrixParams weight_matrix_params;
         IHMCTrajectoryPointParams traj_point_params;
