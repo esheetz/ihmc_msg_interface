@@ -32,6 +32,15 @@ IHMCInterfaceNode::IHMCInterfaceNode(const ros::NodeHandle& nh) {
     else {
         receive_link_ids_ = false;
         received_link_ids_ = true;
+        // will not wait for link ids, assume all links controlled
+        controlled_links_.clear();
+        controlled_links_.push_back(valkyrie_link::pelvis);
+        controlled_links_.push_back(valkyrie_link::torso);
+        controlled_links_.push_back(valkyrie_link::rightCOP_Frame);
+        controlled_links_.push_back(valkyrie_link::leftCOP_Frame);
+        controlled_links_.push_back(valkyrie_link::rightPalm);
+        controlled_links_.push_back(valkyrie_link::leftPalm);
+        controlled_links_.push_back(valkyrie_link::head);
     }
     receive_joint_command_ = true;
     received_joint_command_ = false;
@@ -197,6 +206,8 @@ void IHMCInterfaceNode::publishWholeBodyMessage() {
 
     // initialize struct of default IHMC message parameters
     IHMCMsgUtils::IHMCMessageParameters msg_params;
+    // set controlled links
+    msg_params.controlled_links = controlled_links_;
 
     // if commands are coming from controllers, default message parameters will need to be changed
     if( commands_from_controllers_ ) {
@@ -206,8 +217,6 @@ void IHMCInterfaceNode::publishWholeBodyMessage() {
         msg_params.queueable_params.stream_integration_duration = 0.13; // TODO?
         // set time to achieve trajectory point messages (1.0 for queueing, 0.0 for streaming)
         msg_params.traj_point_params.time = 0.0; // TODO?
-        // set controlled links
-        msg_params.controlled_links = controlled_links_;
     }
 
     // create whole body message
