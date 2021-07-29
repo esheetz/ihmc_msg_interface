@@ -27,8 +27,9 @@
 		<param name="commands_from_controllers" value="$(arg controllers)"/>
 		<param name="joint_command_topic" value="$(arg joint_command_topic)"/>
 		<param name="pelvis_tf_topic" value="$(arg pelvis_tf_topic)"/>
-		<!-- only controllers will send statuses, otherwise status topic not needed -->
+		<!-- only controllers will send statuses and controlled links, otherwise status topic not needed -->
 		<param if="$(arg controllers)" name="status_topic" value="/ControllerTestNode/controllers/output/ihmc/controller_status"/>
+		<param if="$(arg controllers)" name="controlled_link_topic" value="/ControllerTestNode/controllers/output/ihmc/controlled_link_ids"/>
 		<!--<param name="" type="" value=""/> -->
 	</node>
 </launch>

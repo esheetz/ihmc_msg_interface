@@ -13,6 +13,8 @@ IHMCInterfaceNode::IHMCInterfaceNode(const ros::NodeHandle& nh) {
     nh_.param("commands_from_controllers", commands_from_controllers_, true);
     nh_.param("pelvis_tf_topic", pelvis_tf_topic_,
               std::string("/ControllerTestNode/controllers/output/ihmc/pelvis_transform"));
+    nh_.param("controlled_link_topic", controlled_link_topic_,
+              std::string("/ControllerTestNode/controllers/output/ihmc/controlled_link_ids"));
     nh_.param("joint_command_topic", joint_command_topic_,
               std::string("/ControllerTestNode/controllers/output/ihmc/joint_commands"));
     nh_.param("status_topic", status_topic_,
@@ -23,6 +25,14 @@ IHMCInterfaceNode::IHMCInterfaceNode(const ros::NodeHandle& nh) {
     // initialize flags for receiving and publishing messages
     receive_pelvis_transform_ = true;
     received_pelvis_transform_ = false;
+    if( commands_from_controllers_ ) {
+        receive_link_ids_ = true;
+        received_link_ids_ = false;
+    }
+    else {
+        receive_link_ids_ = false;
+        received_link_ids_ = true;
+    }
     receive_joint_command_ = true;
     received_joint_command_ = false;
     publish_commands_ = false;
@@ -42,6 +52,7 @@ IHMCInterfaceNode::~IHMCInterfaceNode() {
 bool IHMCInterfaceNode::initializeConnections() {
     // subscribers for receiving whole-body information
     pelvis_transform_sub_ = nh_.subscribe(pelvis_tf_topic_, 1, &IHMCInterfaceNode::transformCallback, this);
+    controlled_link_sub_ = nh_.subscribe(controlled_link_topic_, 1, &IHMCInterfaceNode::controlledLinkIdsCallback, this);
     joint_command_sub_ = nh_.subscribe(joint_command_topic_, 1, &IHMCInterfaceNode::jointCommandCallback, this);
     status_sub_ = nh_.subscribe(status_topic_, 1, &IHMCInterfaceNode::statusCallback, this);
 
@@ -74,6 +85,34 @@ void IHMCInterfaceNode::transformCallback(const geometry_msgs::TransformStamped&
         }
     }
     
+    // update flag to publish commands
+    updatePublishCommandsFlag();
+
+    // update flag to stop node
+    updateStopNodeFlag();
+
+    return;
+}
+
+void IHMCInterfaceNode::controlledLinkIdsCallback(const std_msgs::Int32MultiArray& arr_msg) {
+    if( receive_link_ids_ ) {
+        // clear vector of controlled links
+        controlled_links_.clear();
+
+        // set controlled links
+        for( int i = 0 ; i < arr_msg.data.size() ; i++ ) {
+            controlled_links_.push_back(arr_msg.data[i]);
+        }
+
+        // set flag indicating link ids have been received
+        received_link_ids_ = true;
+
+        // set flag to no longer receive link ids
+        if( !commands_from_controllers_ ) {
+            receive_link_ids_ = false;
+        }
+    }
+
     // update flag to publish commands
     updatePublishCommandsFlag();
 
@@ -132,6 +171,8 @@ void IHMCInterfaceNode::statusCallback(const std_msgs::String& status_msg) {
         // controllers have converged, do not receive any more messages
         receive_pelvis_transform_ = false;
         received_pelvis_transform_ = false;
+        receive_link_ids_ = false;
+        received_link_ids_ = false;
         receive_joint_command_ = false;
         received_joint_command_ = false;
         
@@ -143,7 +184,8 @@ void IHMCInterfaceNode::statusCallback(const std_msgs::String& status_msg) {
         
         ROS_INFO("Controllers stopped, no longer publishing whole body messages");        
         ROS_INFO("Waiting for status change to receive more joint commands...");  	            
-        // TODO publish a final (empty) message to stop the stream of messages?
+        // stream of messages can be ended with message with velocity of 0
+        // all messages sent with velocity 0, so ending on any message is fine
     }
     return;
 }
@@ -158,8 +200,14 @@ void IHMCInterfaceNode::publishWholeBodyMessage() {
 
     // if commands are coming from controllers, default message parameters will need to be changed
     if( commands_from_controllers_ ) {
-        msg_params.execution_mode = 2; // TODO? (0 override; 1 queue; 2 stream) queue messages as part of stream
-        msg_params.time = 0.0; // TODO shorten time (1.0 for queueing, 0.0 for streaming), since controller commands should be quick
+        // set execution mode to streaming (0 override; 1 queue; 2 stream)
+        msg_params.execution_mode = 2; // TODO?
+        // set time to achieve trajectory point messages (1.0 for queueing, 0.0 for streaming)
+        msg_params.traj_point_params.time = 0.0; // TODO?
+        // set stream integration duration (equal or slightly longer than interval between two consecutive messages, which should be coming in at 10 Hz or 0.1 secs)
+        msg_params.queueable_params.stream_integration_duration = 0.13; // TODO?
+        // set controlled links
+        msg_params.controlled_links = controlled_links_;
     }
 
     // create whole body message
@@ -187,7 +235,7 @@ bool IHMCInterfaceNode::getPublishCommandsFlag() {
 
 void IHMCInterfaceNode::updatePublishCommandsFlag() {
     // if pelvis and joint command both received, then commands can be published
-    publish_commands_ = received_pelvis_transform_ && received_joint_command_;
+    publish_commands_ = received_pelvis_transform_ && received_link_ids_ && received_joint_command_;
     
     return;
 }

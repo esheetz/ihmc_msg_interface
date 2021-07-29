@@ -2,7 +2,8 @@ include_directories ("${PROJECT_SOURCE_DIR}/Utils")
 
 if (WIN32)
   add_library(ihmc_msg_utils SHARED
-    ihmc_msg_utilities.hpp ihmc_msg_utilities.cpp
+    ihmc_msg_params.h
+    ihmc_msg_utilities.h ihmc_msg_utilities.cpp
 )
 endif(WIN32)
 

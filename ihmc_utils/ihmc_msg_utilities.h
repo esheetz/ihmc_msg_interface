@@ -5,6 +5,11 @@
 
 #include <iostream>
 #include <memory>
+#include <chrono>
+#include <algorithm>
+#include <vector>
+
+#include <ihmc_utils/ihmc_msg_params.h>
 
 #include <Utils/wrap_eigen.hpp>
 #include <Utils/rosmsg_utils.hpp>
@@ -33,99 +38,6 @@
 namespace IHMCMsgUtils {
 
     void testFunction();
-    
-    // STRUCT FOR SETTING MESSAGE PARAMETERS
-    struct IHMCMessageParameters {
-        // MEMBERS OF STRUCT
-        // id used to identify message, should be consecutively increasing
-        int sequence_id;
-
-        // time at which trajectory point should be reached, relative to trajectory start
-        double time;
-
-        // weight used to encode priority for achieving trajectory
-        int weight;
-
-        // flag to set safety check, which may restrict upper-body motion while robot is walking
-        bool force_execution;
-
-        // flag to set user mode, which tries to achieve desired configuration regardless of leg kinematics
-        bool enable_user_pelvis_control;
-
-        // flag to set user mode during walking
-        bool enable_user_pelvis_control_during_walking;
-
-        // flag to set use of custom control frame
-        bool use_custom_control_frame;
-
-        // id of reference frame for world frame (default)
-        int trajectory_reference_frame_id_world;
-
-        // if of world reference frame for data in a packet; default same as trajectory_reference_frame_id
-        int data_reference_frame_id_world;
-
-        // id of reference frame for pelvis zup frame (used for chest orientation)
-        int trajectory_reference_frame_id_pelviszup;
-
-        // if of reference frame for data in a packet; default same as trajectory_reference_frame_id
-        int data_reference_frame_id_pelviszup;
-
-        // id of reference frame for selection matrix
-        int selection_frame_id;
-
-        // flag to select x-axis of reference frame
-        bool x_selected;
-
-        // flag to select y-axis of reference frame
-        bool y_selected;
-
-        // flag to select z-axis of reference frame
-        bool z_selected;
-
-        // id of reference frame for weight matrix
-        int weight_frame_id;
-
-        // weight for x-axis of reference frame
-        double x_weight;
-
-        // weight for y-axis of reference frame
-        double y_weight;
-
-        // weight for z-axis of reference frame
-        double z_weight;
-
-        // execution mode for queueable messages; 0 is override, 1 is queue, 2 is stream
-        int execution_mode;
-
-        // message id for queueable messages; default -1, only needs to be set if another message is queued
-        int message_id;
-
-
-        // DEFAULT CONSTRUCTOR; sets all parameters to default values
-        IHMCMessageParameters() {
-            sequence_id = 1;
-            time = 5.0;
-            weight = -1.0;
-            force_execution = false;
-            enable_user_pelvis_control = false;
-            enable_user_pelvis_control_during_walking = false;
-            use_custom_control_frame = false;
-            trajectory_reference_frame_id_world = 83766130; // world frame
-            data_reference_frame_id_world = 83766130; // 1 indicates same as trajectory_reference_frame_id, but we set explicitly
-            trajectory_reference_frame_id_pelviszup = -101; // pelvis zup
-            data_reference_frame_id_pelviszup = -101;
-            selection_frame_id = 0;
-            x_selected = true;
-            y_selected = true;
-            z_selected = true;
-            weight_frame_id = 0;
-            x_weight = -1.0;
-            y_weight = -1.0;
-            z_weight = -1.0;
-            execution_mode = 0;
-            message_id = -1;
-        }
-    };
 
     // FUNCTIONS FOR MAKING IHMC MESSAGES
     /*
@@ -175,8 +87,8 @@ namespace IHMCMsgUtils {
     /*
      * makes a FrameInformation message
      * @param frame_msg, the message to be populated
-     * @param trajectory_reference_frame_id, the reference frame id (provided explicitly for differences in the same wholebody message)
-     * @param data_reference_frame_id, the reference frame id for data in a packet (provided explicitly for differences in the same wholebody message)
+     * @param trajectory_reference_frame_id, the reference frame id (provided explicitly for differences in the same whole-body message)
+     * @param data_reference_frame_id, the reference frame id for data in a packet (provided explicitly for differences in the same whole-body message)
      * @param msg_params, the IHMCMessageParameters struct containing parameters for populating the message
      * @return none
      * @post frame_msg populated
@@ -249,8 +161,8 @@ namespace IHMCMsgUtils {
      * @param pos, the vector containing the desired position
      * @param quat, the quaternion containing the desired orientation
      * @param se3_msg, the message to be populated
-     * @param trajectory_reference_frame_id, the reference frame id (provided explicitly for differences in the same wholebody message)
-     * @param data_reference_frame_id, the reference frame id for data in a packet (provided explicitly for differences in the same wholebody message)
+     * @param trajectory_reference_frame_id, the reference frame id (provided explicitly for differences in the same whole-body message)
+     * @param data_reference_frame_id, the reference frame id for data in a packet (provided explicitly for differences in the same whole-body message)
      * @param msg_params, the IHMCMessageParameters struct containing parameters for populating the message
      * @return none
      * @post se3_msg populated based on the given configuration
@@ -288,8 +200,8 @@ namespace IHMCMsgUtils {
      * makes an SO3TrajectoryMessage from the given quaternion
      * @param quat, the quaternion containing the desired orientation
      * @param so3_msg, the message to be populated
-     * @param trajectory_reference_frame_id, the reference frame id (provided explicitly for differences in the same wholebody message)
-     * @param data_reference_frame_id, the reference frame id for data in a packet (provided explicitly for differences in the same wholebody message)
+     * @param trajectory_reference_frame_id, the reference frame id (provided explicitly for differences in the same whole-body message)
+     * @param data_reference_frame_id, the reference frame id for data in a packet (provided explicitly for differences in the same whole-body message)
      * @param msg_params, the IHMCMessageParameters struct containing parameters for populating the message
      * @return none
      * @post so3_msg populated based on the given orientation
@@ -402,4 +314,14 @@ namespace IHMCMsgUtils {
                       dynacore::Vect3& lfoot_pos, dynacore::Quaternion& lfoot_quat,
                       dynacore::Vect3& rfoot_pos, dynacore::Quaternion& rfoot_quat);
 
-} // end namespace IHMCMsgUtilities
+    /*
+     * checks if a particular link is in the vector of controlled links;
+     * if true, then whole-body message will populate fields based on joint group;
+     * if false, then whole-body message will not populate fields and will use defaults
+     * @param controlled_links, the vector of controlled links to check
+     * @param link_id, the link id to check
+     * @return bool indicating if link_id is in controlled_links
+     */
+    bool checkControlledLink(std::vector<int> controlled_links, int link_id);
+
+} // end namespace IHMCMsgUtils
