@@ -7,11 +7,11 @@
  * [TODO brief description of tests]
  */
 int main(int argc, char **argv) {
-	std::cout << "Hello world!" << std::endl;
+    std::cout << "Hello world!" << std::endl;
 
-	std::cout << "[Test] Testing IHMC Message Utilities" << std::endl;
+    std::cout << "[Test] Testing IHMC Message Utilities" << std::endl;
 
-	IHMCMsgUtils::testFunction();
+    IHMCMsgUtils::testFunction();
 
-	return 0;
+    return 0;
 }

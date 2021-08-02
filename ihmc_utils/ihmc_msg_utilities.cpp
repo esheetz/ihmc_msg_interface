@@ -369,7 +369,7 @@ namespace IHMCMsgUtils {
         // not used:
         // bool control_rfoot = checkControlledLink(msg_params.controlled_links, valkyrie_link::rightFoot);
         // bool control_lfoot = checkControlledLink(msg_params.controlled_links, valkyrie_link::leftFoot);
-        
+
         // HAND TRAJECTORIES (not needed)
         // do not set trajectory for left hand: wholebody_msg.left_hand_trajectory_message
         // do not set trajectory for right hand: wholebody_msg.right_hand_trajectory_message
@@ -543,7 +543,7 @@ namespace IHMCMsgUtils {
         joint_indices.push_back(valkyrie_joint::leftKneePitch);
         joint_indices.push_back(valkyrie_joint::leftAnklePitch);
         joint_indices.push_back(valkyrie_joint::leftAnkleRoll);
-        
+
         return;
     }
 
@@ -584,7 +584,7 @@ namespace IHMCMsgUtils {
         joint_indices.push_back(valkyrie_joint::leftShoulderYaw);
         joint_indices.push_back(valkyrie_joint::leftElbowPitch);
         joint_indices.push_back(valkyrie_joint::leftForearmYaw);
-        
+
         // push back special joint index for left wrist; not included in valkyrie definition
         joint_indices.push_back(-1); // leftWristRoll
         joint_indices.push_back(-1); // leftWristPitch
@@ -605,7 +605,7 @@ namespace IHMCMsgUtils {
     }
 
     void getRelevantJointIndicesRightArm(std::vector<int>& joint_indices) {
-	// clear joint index vector
+    // clear joint index vector
         joint_indices.clear();
 
         // push back joints for right arm [shoulderPitch, shoulderRoll, shoulderYaw, elbowPitch, forearmYaw]
@@ -614,11 +614,11 @@ namespace IHMCMsgUtils {
         joint_indices.push_back(valkyrie_joint::rightShoulderYaw);
         joint_indices.push_back(valkyrie_joint::rightElbowPitch);
         joint_indices.push_back(valkyrie_joint::rightForearmYaw);
-        
+
         // push back special joint index for right wrist; not included in valkyrie definition
         joint_indices.push_back(-1); // rightWristRoll
         joint_indices.push_back(-1); // rightWristPitch
-        
+
         return;
     }
 

@@ -40,7 +40,7 @@ namespace IHMCMsgUtils {
             data_reference_frame_id_pelviszup = -101; // 1 indicates same as trajectory_reference_frame_id, but we set explicitly
         }
     };
-    
+
     // STRUCT FOR ONE DOF JOINT TRAJECTORY MESSAGE PARAMETERS
     struct IHMCOneDoFJointTrajectoryParams {
         // weight used to encode priority for achieving trajectory
@@ -92,7 +92,7 @@ namespace IHMCMsgUtils {
             previous_message_id = -1;
             stream_integration_duration = 0.0;
         }
-    };    
+    };
 
     // STRUCT FOR SE3 AND SO3 MESSAGE PARAMETERS
     struct IHMCSE3SO3Params {

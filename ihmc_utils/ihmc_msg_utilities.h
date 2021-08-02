@@ -185,7 +185,7 @@ namespace IHMCMsgUtils {
     void makeIHMCSE3TrajectoryPointMessage(dynacore::Vect3 pos, dynacore::Quaternion quat,
                                            controller_msgs::SE3TrajectoryPointMessage& se3_point_msg,
                                            IHMCMessageParameters msg_params);
-    
+
     /*
      * makes a SelectionMatrix3DMessage
      * @param selmat_msg, the message to be populated
@@ -235,7 +235,7 @@ namespace IHMCMsgUtils {
     void makeIHMCSpineTrajectoryMessage(dynacore::Vector q_joints,
                                         controller_msgs::SpineTrajectoryMessage& spine_msg,
                                         IHMCMessageParameters msg_params);
-    
+
     /*
      * makes a TrajectoryPoint1DMessage from the given joint position value
      * @param q_joint, the desired position of the joint

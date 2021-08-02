@@ -46,7 +46,7 @@ IHMCInterfaceNode::IHMCInterfaceNode(const ros::NodeHandle& nh) {
     received_joint_command_ = false;
     publish_commands_ = false;
     stop_node_ = false;
-    
+
     // set initial empty status
     status_ = std::string("");
 
@@ -87,13 +87,13 @@ void IHMCInterfaceNode::transformCallback(const geometry_msgs::TransformStamped&
 
         // set flag indicating pelvis transform has been received
         received_pelvis_transform_ = true;
-        
+
         // set flag to no longer receive transform messages
         if( !commands_from_controllers_ ) {
             receive_pelvis_transform_ = false;
         }
     }
-    
+
     // update flag to publish commands
     updatePublishCommandsFlag();
 
@@ -150,9 +150,9 @@ void IHMCInterfaceNode::jointCommandCallback(const sensor_msgs::JointState& js_m
                 int jidx = val::joint_names_to_indices[js_msg.name[i]] - valkyrie::num_virtual;
                 q_joint_[jidx] = js_msg.position[i];
             }
-            // if joint name is not one of Valkyrie's action joints, ignore it            
+            // if joint name is not one of Valkyrie's action joints, ignore it
         }
-        
+
         // set flag indicating joint command has been received
         received_joint_command_ = true;
 
@@ -161,7 +161,7 @@ void IHMCInterfaceNode::jointCommandCallback(const sensor_msgs::JointState& js_m
             receive_joint_command_ = false;
         }
     }
-    
+
     // update flag to publish commands
     updatePublishCommandsFlag();
 
@@ -175,7 +175,7 @@ void IHMCInterfaceNode::statusCallback(const std_msgs::String& status_msg) {
     if( status_msg.data == std::string("STOP") ) {
         // set status
         status_ = status_msg.data;
-        
+
         // controllers have converged, do not receive any more messages
         receive_pelvis_transform_ = false;
         received_pelvis_transform_ = false;
@@ -183,13 +183,13 @@ void IHMCInterfaceNode::statusCallback(const std_msgs::String& status_msg) {
         received_link_ids_ = false;
         receive_joint_command_ = false;
         received_joint_command_ = false;
-        
+
         // update flag to publish commands
         updatePublishCommandsFlag();
-        
+
         // update flag to stop node
         updateStopNodeFlag();
-        
+
         ROS_INFO("[IHMC Interface Node] Controllers stopped, no longer publishing whole-body messages");
         ROS_INFO("[IHMC Interface Node] Waiting for status change to receive more joint commands...");
         // stream of messages can be ended with message with velocity of 0
@@ -264,7 +264,7 @@ bool IHMCInterfaceNode::getPublishCommandsFlag() {
 void IHMCInterfaceNode::updatePublishCommandsFlag() {
     // if pelvis and joint command both received, then commands can be published
     publish_commands_ = received_pelvis_transform_ && received_link_ids_ && received_joint_command_;
-    
+
     return;
 }
 
