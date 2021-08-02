@@ -172,7 +172,6 @@ void IHMCInterfaceNode::jointCommandCallback(const sensor_msgs::JointState& js_m
 }
 
 void IHMCInterfaceNode::statusCallback(const std_msgs::String& status_msg) {
-    // TODO additional statuses? special message to start the stream of messages?
     if( status_msg.data == std::string("STOP") ) {
         // set status
         status_ = status_msg.data;
@@ -191,10 +190,30 @@ void IHMCInterfaceNode::statusCallback(const std_msgs::String& status_msg) {
         // update flag to stop node
         updateStopNodeFlag();
         
-        ROS_INFO("Controllers stopped, no longer publishing whole body messages");        
-        ROS_INFO("Waiting for status change to receive more joint commands...");  	            
+        ROS_INFO("[IHMC Interface Node] Controllers stopped, no longer publishing whole-body messages");
+        ROS_INFO("[IHMC Interface Node] Waiting for status change to receive more joint commands...");
         // stream of messages can be ended with message with velocity of 0
         // all messages sent with velocity 0, so ending on any message is fine
+    }
+    else if( status_msg.data == std::string("START") ) {
+        // set status
+        status_ = status_msg.data;
+
+        // controllers are started, prepare to receive messages
+        receive_pelvis_transform_ = true;
+        received_pelvis_transform_ = false;
+        receive_link_ids_ = true;
+        received_link_ids_ = false;
+        receive_joint_command_ = true;
+        received_joint_command_ = false;
+
+        // update flag to publish commands
+        updatePublishCommandsFlag();
+
+        // update flag to stop node
+        updateStopNodeFlag();
+
+        ROS_INFO("[IHMC Interface Node] Controllers started, waiting for joint commands...");
     }
     return;
 }
@@ -212,14 +231,14 @@ void IHMCInterfaceNode::publishWholeBodyMessage() {
     // if commands are coming from controllers, default message parameters will need to be changed
     if( commands_from_controllers_ ) {
         // set execution mode to streaming (0 override; 1 queue; 2 stream)
-        msg_params.queueable_params.execution_mode = 2; // TODO?
+        msg_params.queueable_params.execution_mode = 2;
         // set stream integration duration (equal or slightly longer than interval between two consecutive messages, which should be coming in at 10 Hz or 0.1 secs)
         msg_params.queueable_params.stream_integration_duration = 0.13; // TODO?
         // set time to achieve trajectory point messages (1.0 for queueing, 0.0 for streaming)
-        msg_params.traj_point_params.time = 0.0; // TODO?
+        msg_params.traj_point_params.time = 0.0;
     }
 
-    // create whole body message
+    // create whole-body message
     controller_msgs::WholeBodyTrajectoryMessage wholebody_msg;
     IHMCMsgUtils::makeIHMCWholeBodyTrajectoryMessage(q_, wholebody_msg, msg_params);
 
@@ -296,8 +315,6 @@ void IHMCInterfaceNode::prepareConfigurationVector() {
 }
 
 int main(int argc, char **argv) {
-    std::cout << "IHMC Interface Node" << std::endl;
-
     // initialize node
     ros::init(argc, argv, "IHMCInterfaceNode");
 
@@ -307,20 +324,20 @@ int main(int argc, char **argv) {
     // create node
     IHMCInterfaceNode ihmc_interface_node(nh);
 
-    ROS_INFO("[IHMC Interface Node] node started, waiting for joint commands...");
+    ROS_INFO("[IHMC Interface Node] Node started, waiting for joint commands...");
 
     ros::Rate rate(10);
     while( ros::ok() ) {
         // if commands coming from controllers, consistently publish messages until controllers converge
-    	if( ihmc_interface_node.getCommandsFromControllersFlag() && ihmc_interface_node.getPublishCommandsFlag() ) {
-    	    // ready to publish commands
-    	    ROS_INFO("Preparing and streaming whole body message..."); // TODO streaming or queueing?
-    	    ihmc_interface_node.publishWholeBodyMessage();
-    	}
-    	else {
-    	    // otherwise, publish single wholebody message and exit node
+        if( ihmc_interface_node.getCommandsFromControllersFlag() && ihmc_interface_node.getPublishCommandsFlag() ) {
+            // ready to publish commands
+            ROS_INFO("[IHMC Interface Node] Preparing and streaming whole-body message...");
+            ihmc_interface_node.publishWholeBodyMessage();
+        }
+        else {
+            // otherwise, publish single whole-body message and exit node
             if( ihmc_interface_node.getPublishCommandsFlag() && ihmc_interface_node.getStopNodeFlag() ) {
-                ROS_INFO("Preparing and executing whole body message...");
+                ROS_INFO("[IHMC Interface Node] Preparing and executing whole-body message...");
                 ihmc_interface_node.publishWholeBodyMessage();
                 ros::Duration(3.0).sleep();
                 break; // only publish one message, then stop
@@ -330,7 +347,7 @@ int main(int argc, char **argv) {
         rate.sleep();
     }
 
-    ROS_INFO("[IHMC Interface Node] published whole body message, all done!");
+    ROS_INFO("[IHMC Interface Node] Published whole-body message, all done!");
 
     return 0;
 }

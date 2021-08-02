@@ -158,7 +158,8 @@ namespace IHMCMsgUtils {
 
     void makeIHMCQueueableMessage(controller_msgs::QueueableMessage& q_msg,
                                   IHMCMessageParameters msg_params) {
-        // set execution mode and message id
+        // set sequence id, execution mode, and message id
+        q_msg.sequence_id = msg_params.sequence_id;
         q_msg.execution_mode = msg_params.queueable_params.execution_mode;
         q_msg.message_id = msg_params.queueable_params.message_id;
 
