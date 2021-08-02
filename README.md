@@ -7,7 +7,7 @@ Interface for using IHMC messages to send commands to NASA's Valkyrie robot.
 ## Prerequisites
 - cmake
 - eigen3 (in ubuntu: sudo apt install libeigen3-dev)
-- [`val_dynacore` package](https://github.com/esheetz/val_dynacore) for robot model and some utilities
+- [`val_dynacore` package](https://github.com/esheetz/val_dynacore) for robot model and some utilities; follow [`val_dynacore` installation instructions](https://github.com/esheetz/val_dynacore/blob/master/docs/installation.md#installation)
 
 
 
@@ -40,8 +40,3 @@ If the controllers are stopped, they will send a stop status to the IHMC Message
 
 ### Launch
 The `ihmc_launch` directory contains a launch file for starting the IHMC Message Interface.  The default parameters will initialized the IHMC Interface Node to listen for joint commands from controllers.  For more information about how the `IHMCMsgInterface` is used to communicate with the robot, see the `val_dynacore` package documentation on [running the SCS simulation](https://github.com/esheetz/val_dynacore/blob/master/docs/SCS_sim.md#running-scs-sim) and [running the Valkyrie robot](https://github.com/esheetz/val_dynacore/blob/master/docs/robot_ops.md#communicating-with-the-robot).
-
-
-
-## Running in Simulation
-To send commands to the robot, use the SCS simulator.  See the `val_dynacore` package documentation for instructions on [running in SCS](https://github.com/esheetz/val_dynacore/blob/master/docs/SCS_sim.md).
