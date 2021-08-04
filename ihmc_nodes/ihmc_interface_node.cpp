@@ -23,13 +23,15 @@ IHMCInterfaceNode::IHMCInterfaceNode(const ros::NodeHandle& nh) {
     initializeConnections();
 
     // initialize flags for receiving and publishing messages
-    receive_pelvis_transform_ = true;
-    received_pelvis_transform_ = false;
     if( commands_from_controllers_ ) {
-        receive_link_ids_ = true;
+        receive_pelvis_transform_ = false;
+        receive_joint_command_ = false;
+        receive_link_ids_ = false;
         received_link_ids_ = false;
     }
     else {
+        receive_pelvis_transform_ = true;
+        receive_joint_command_ = true;
         receive_link_ids_ = false;
         received_link_ids_ = true;
         // will not wait for link ids, assume all links controlled
@@ -42,7 +44,7 @@ IHMCInterfaceNode::IHMCInterfaceNode(const ros::NodeHandle& nh) {
         controlled_links_.push_back(valkyrie_link::leftPalm);
         controlled_links_.push_back(valkyrie_link::head);
     }
-    receive_joint_command_ = true;
+    received_pelvis_transform_ = false;
     received_joint_command_ = false;
     publish_commands_ = false;
     stop_node_ = false;
@@ -172,7 +174,7 @@ void IHMCInterfaceNode::jointCommandCallback(const sensor_msgs::JointState& js_m
 }
 
 void IHMCInterfaceNode::statusCallback(const std_msgs::String& status_msg) {
-    if( status_msg.data == std::string("STOP") ) {
+    if( status_msg.data == std::string("STOP-LISTENING") ) {
         // set status
         status_ = status_msg.data;
 
@@ -195,7 +197,7 @@ void IHMCInterfaceNode::statusCallback(const std_msgs::String& status_msg) {
         // stream of messages can be ended with message with velocity of 0
         // all messages sent with velocity 0, so ending on any message is fine
     }
-    else if( status_msg.data == std::string("START") ) {
+    else if( status_msg.data == std::string("START-LISTENING") ) {
         // set status
         status_ = status_msg.data;
 
@@ -214,6 +216,9 @@ void IHMCInterfaceNode::statusCallback(const std_msgs::String& status_msg) {
         updateStopNodeFlag();
 
         ROS_INFO("[IHMC Interface Node] Controllers started, waiting for joint commands...");
+    }
+    else {
+        ROS_WARN("[IHMC Interface Node] Unrecognized status %s, ignoring status message", status_msg.data.c_str());
     }
     return;
 }
@@ -324,7 +329,12 @@ int main(int argc, char **argv) {
     // create node
     IHMCInterfaceNode ihmc_interface_node(nh);
 
-    ROS_INFO("[IHMC Interface Node] Node started, waiting for joint commands...");
+    if( ihmc_interface_node.getCommandsFromControllersFlag() ) {
+        ROS_INFO("[IHMC Interface Node] Node started, waiting for controller status...");
+    }
+    else {
+        ROS_INFO("[IHMC Interface Node] Node started, waiting for joint commands...");
+    }
 
     ros::Rate rate(10);
     while( ros::ok() ) {
