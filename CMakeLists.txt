@@ -4,6 +4,8 @@
 cmake_minimum_required(VERSION 3.1)
 project(IHMCMsgInterface)
 
+set(INSTALL_LIB_DIR ${CMAKE_INSTALL_PREFIX}/lib)
+
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   tf
