@@ -22,7 +22,7 @@ IHMCInterfaceNode::IHMCInterfaceNode(const ros::NodeHandle& nh) {
               std::string("controllers/output/ihmc/joint_commands"));
     nh_.param("status_topic", status_topic_,
               std::string("controllers/output/ihmc/controller_status"));
-    
+
     // if coming from controllers, update topic names to come from managing node
     if( commands_from_controllers_ ) {
         pelvis_tf_topic_ = managing_node + pelvis_tf_topic_;
