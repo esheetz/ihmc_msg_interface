@@ -11,14 +11,25 @@ IHMCInterfaceNode::IHMCInterfaceNode(const ros::NodeHandle& nh) {
 
     // set up parameters
     nh_.param("commands_from_controllers", commands_from_controllers_, true);
+    std::string managing_node;
+    nh_.param("managing_node", managing_node, std::string("ControllerTestNode"));
+    managing_node = std::string("/") + managing_node + std::string("/");
     nh_.param("pelvis_tf_topic", pelvis_tf_topic_,
-              std::string("/ControllerTestNode/controllers/output/ihmc/pelvis_transform"));
+              std::string("controllers/output/ihmc/pelvis_transform"));
     nh_.param("controlled_link_topic", controlled_link_topic_,
-              std::string("/ControllerTestNode/controllers/output/ihmc/controlled_link_ids"));
+              std::string("controllers/output/ihmc/controlled_link_ids"));
     nh_.param("joint_command_topic", joint_command_topic_,
-              std::string("/ControllerTestNode/controllers/output/ihmc/joint_commands"));
+              std::string("controllers/output/ihmc/joint_commands"));
     nh_.param("status_topic", status_topic_,
-              std::string("/ControllerTestNode/controllers/output/ihmc/controller_status"));
+              std::string("controllers/output/ihmc/controller_status"));
+    
+    // if coming from controllers, update topic names to come from managing node
+    if( commands_from_controllers_ ) {
+        pelvis_tf_topic_ = managing_node + pelvis_tf_topic_;
+        controlled_link_topic_ = managing_node + controlled_link_topic_;
+        joint_command_topic_ = managing_node + joint_command_topic_;
+        status_topic_ = managing_node + status_topic_;
+    }
 
     initializeConnections();
 
@@ -49,6 +60,12 @@ IHMCInterfaceNode::IHMCInterfaceNode(const ros::NodeHandle& nh) {
     publish_commands_ = false;
     stop_node_ = false;
 
+    home_left_arm_ = false;
+    home_right_arm_ = false;
+    home_chest_ = false;
+    home_pelvis_ = false;
+    publish_go_home_command_ = false;
+
     // set initial empty status
     status_ = std::string("");
 
@@ -63,12 +80,15 @@ IHMCInterfaceNode::~IHMCInterfaceNode() {
 bool IHMCInterfaceNode::initializeConnections() {
     // subscribers for receiving whole-body information
     pelvis_transform_sub_ = nh_.subscribe(pelvis_tf_topic_, 1, &IHMCInterfaceNode::transformCallback, this);
-    controlled_link_sub_ = nh_.subscribe(controlled_link_topic_, 1, &IHMCInterfaceNode::controlledLinkIdsCallback, this);
     joint_command_sub_ = nh_.subscribe(joint_command_topic_, 1, &IHMCInterfaceNode::jointCommandCallback, this);
-    status_sub_ = nh_.subscribe(status_topic_, 1, &IHMCInterfaceNode::statusCallback, this);
+    if( commands_from_controllers_ ) {
+        controlled_link_sub_ = nh_.subscribe(controlled_link_topic_, 1, &IHMCInterfaceNode::controlledLinkIdsCallback, this);
+        status_sub_ = nh_.subscribe(status_topic_, 20, &IHMCInterfaceNode::statusCallback, this);
+    }
 
     // publishers for sending whole-body messages
     wholebody_pub_ = nh_.advertise<controller_msgs::WholeBodyTrajectoryMessage>("/ihmc/valkyrie/humanoid_control/input/whole_body_trajectory", 1);
+    go_home_pub_ = nh_.advertise<controller_msgs::GoHomeMessage>("/ihmc/valkyrie/humanoid_control/input/go_home", 20);
 
     return true;
 }
@@ -217,6 +237,54 @@ void IHMCInterfaceNode::statusCallback(const std_msgs::String& status_msg) {
 
         ROS_INFO("[IHMC Interface Node] Controllers started, waiting for joint commands...");
     }
+    else if( status_msg.data == std::string("HOME-LEFTARM") ) {
+        // set status
+        status_ = status_msg.data;
+
+        // set flag
+        home_left_arm_ = true;
+
+        // update flag to publish go home message
+        updatePublishGoHomeCommandFlag();
+
+        ROS_INFO("[IHMC Interface Node] Homing left arm...");
+    }
+    else if( status_msg.data == std::string("HOME-RIGHTARM") ) {
+        // set status
+        status_ = status_msg.data;
+
+        // set flag
+        home_right_arm_ = true;
+
+        // update flag to publish go home message
+        updatePublishGoHomeCommandFlag();
+
+        ROS_INFO("[IHMC Interface Node] Homing right arm...");
+    }
+    else if( status_msg.data == std::string("HOME-CHEST") ) {
+        // set status
+        status_ = status_msg.data;
+
+        // set flag
+        home_chest_ = true;
+
+        // update flag to publish go home message
+        updatePublishGoHomeCommandFlag();
+
+        ROS_INFO("[IHMC Interface Node] Homing chest...");
+    }
+    else if( status_msg.data == std::string("HOME-PELVIS") ) {
+        // set status
+        status_ = status_msg.data;
+
+        // set flag
+        home_pelvis_ = true;
+
+        // update flag to publish go home message
+        updatePublishGoHomeCommandFlag();
+
+        ROS_INFO("[IHMC Interface Node] Homing pelvis...");
+    }
     else {
         ROS_WARN("[IHMC Interface Node] Unrecognized status %s, ignoring status message", status_msg.data.c_str());
     }
@@ -253,6 +321,68 @@ void IHMCInterfaceNode::publishWholeBodyMessage() {
     return;
 }
 
+void IHMCInterfaceNode::publishGoHomeMessage() {
+    // initialize struct of default IHMC message parameters
+    IHMCMsgUtils::IHMCMessageParameters msg_params;
+
+    // home left arm
+    if( home_left_arm_ ) {
+        // create go home message
+        controller_msgs::GoHomeMessage go_home_msg;
+        IHMCMsgUtils::makeIHMCHomeLeftArmMessage(go_home_msg, msg_params);
+
+        // publish message
+        go_home_pub_.publish(go_home_msg);
+
+        // reset flag
+        home_left_arm_ = false;
+    }
+
+    // home right arm
+    if( home_right_arm_ ) {
+        // create go home message
+        controller_msgs::GoHomeMessage go_home_msg;
+        IHMCMsgUtils::makeIHMCHomeRightArmMessage(go_home_msg, msg_params);
+
+        // publish message
+        go_home_pub_.publish(go_home_msg);
+
+        // reset flag
+        home_right_arm_ = false;
+    }
+
+    // home chest
+    if( home_chest_ ) {
+        // create go home message
+        controller_msgs::GoHomeMessage go_home_msg;
+        IHMCMsgUtils::makeIHMCHomeChestMessage(go_home_msg, msg_params);
+
+        // publish message
+        go_home_pub_.publish(go_home_msg);
+
+        // reset flag
+        home_chest_ = false;
+    }
+
+    // home pelvis
+    if( home_pelvis_ ) {
+        // create go home message
+        controller_msgs::GoHomeMessage go_home_msg;
+        IHMCMsgUtils::makeIHMCHomePelvisMessage(go_home_msg, msg_params);
+
+        // publish message
+        go_home_pub_.publish(go_home_msg);
+
+        // reset flag
+        home_pelvis_ = false;
+    }
+
+    // update flag to publish go home message
+    updatePublishGoHomeCommandFlag();
+
+    return;
+}
+
 // HELPER FUNCTIONS
 std::string IHMCInterfaceNode::getStatus() {
     return status_;
@@ -280,6 +410,17 @@ bool IHMCInterfaceNode::getStopNodeFlag() {
 void IHMCInterfaceNode::updateStopNodeFlag() {
     // if both pelvis and joint commands no longer being received, then prepare to stop node
     stop_node_ = !receive_pelvis_transform_ && !receive_joint_command_;
+
+    return;
+}
+
+bool IHMCInterfaceNode::getPublishGoHomeCommandFlag() {
+    return publish_go_home_command_;
+}
+
+void IHMCInterfaceNode::updatePublishGoHomeCommandFlag() {
+    // if any body parts need to be homed, then go home message(s) need to be published
+    publish_go_home_command_ = home_left_arm_ || home_right_arm_ || home_chest_ || home_pelvis_;
 
     return;
 }
@@ -338,11 +479,21 @@ int main(int argc, char **argv) {
 
     ros::Rate rate(10);
     while( ros::ok() ) {
-        // if commands coming from controllers, consistently publish messages until controllers converge
-        if( ihmc_interface_node.getCommandsFromControllersFlag() && ihmc_interface_node.getPublishCommandsFlag() ) {
-            // ready to publish commands
-            ROS_INFO("[IHMC Interface Node] Preparing and streaming whole-body message...");
-            ihmc_interface_node.publishWholeBodyMessage();
+        // check if commands coming from controllers
+        if( ihmc_interface_node.getCommandsFromControllersFlag() ) {
+            // consistently publish messages until controllers converge
+            if ( ihmc_interface_node.getPublishCommandsFlag() ) {
+                // ready to publish commands
+                ROS_INFO("[IHMC Interface Node] Preparing and streaming whole-body message...");
+                ihmc_interface_node.publishWholeBodyMessage();
+            }
+
+            // check if any body parts need to be homed
+            if (ihmc_interface_node.getPublishGoHomeCommandFlag() ) {
+                // ready to publish homing message
+                ROS_INFO("[IHMC Interface Node] Publishing go home message...");
+                ihmc_interface_node.publishGoHomeMessage();
+            }
         }
         else {
             // otherwise, publish single whole-body message and exit node

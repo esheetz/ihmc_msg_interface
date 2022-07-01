@@ -34,6 +34,7 @@
 #include <controller_msgs/TrajectoryPoint1DMessage.h>
 #include <controller_msgs/WeightMatrix3DMessage.h>
 #include <controller_msgs/WholeBodyTrajectoryMessage.h>
+#include <controller_msgs/GoHomeMessage.h>
 
 namespace IHMCMsgUtils {
 
@@ -269,6 +270,22 @@ namespace IHMCMsgUtils {
     void makeIHMCWholeBodyTrajectoryMessage(dynacore::Vector q,
                                             controller_msgs::WholeBodyTrajectoryMessage& wholebody_msg,
                                             IHMCMessageParameters msg_params);
+
+    /*
+     * makes a GoHomeMessage for the corresponding humanoid body part
+     * @param go_home_msg, the message to be populated
+     * @param msg_params, the IHMCMessageParameters struct containing parameters for populating the message
+     * @return none
+     * @post go_home_msg populated for the respective body part
+     */
+    void makeIHMCHomeLeftArmMessage(controller_msgs::GoHomeMessage& go_home_msg,
+                                    IHMCMessageParameters msg_params);
+    void makeIHMCHomeRightArmMessage(controller_msgs::GoHomeMessage& go_home_msg,
+                                     IHMCMessageParameters msg_params);
+    void makeIHMCHomeChestMessage(controller_msgs::GoHomeMessage& go_home_msg,
+                                  IHMCMessageParameters msg_params);
+    void makeIHMCHomePelvisMessage(controller_msgs::GoHomeMessage& go_home_msg,
+                                   IHMCMessageParameters msg_params);
 
     // HELPER FUNCTIONS
     /*

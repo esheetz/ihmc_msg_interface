@@ -162,6 +162,17 @@ namespace IHMCMsgUtils {
         }
     };
 
+    // STRUCT FOR GO HOME MESSAGE PARAMETERS
+    struct IHMCGoHomeParams {
+        // how long it will take to reach the home configuration
+        double trajectory_time;
+
+        // DEFAULT CONSTRUCTOR; sets all parameters to default values
+        IHMCGoHomeParams() {
+            trajectory_time = 3.0;
+        }
+    };
+
     // STRUCT FOR WHOLE-BODY MESSAGE PARAMETERS
     struct IHMCMessageParameters {
         // id used to identify message, should be consecutively increasing
@@ -180,6 +191,7 @@ namespace IHMCMsgUtils {
         IHMCSelectionMatrixParams selection_matrix_params;
         IHMCWeightMatrixParams weight_matrix_params;
         IHMCTrajectoryPointParams traj_point_params;
+        IHMCGoHomeParams go_home_params;
 
         // DEFAULT CONSTRUCTOR; sets all parameters to default values
         IHMCMessageParameters() {

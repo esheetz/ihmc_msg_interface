@@ -35,6 +35,7 @@ public:
 
     // PUBLISH MESSAGE
     void publishWholeBodyMessage();
+    void publishGoHomeMessage();
 
     // HELPER FUNCTIONS
     std::string getStatus();
@@ -43,6 +44,8 @@ public:
     void updatePublishCommandsFlag();
     bool getStopNodeFlag();
     void updateStopNodeFlag();
+    bool getPublishGoHomeCommandFlag();
+    void updatePublishGoHomeCommandFlag();
     void prepareConfigurationVector();
 
 private:
@@ -59,6 +62,7 @@ private:
     std::string status_; // string indicating current status
 
     ros::Publisher wholebody_pub_; // publisher for wholebody messages
+    ros::Publisher go_home_pub_; // publisher for go home messages
 
     bool commands_from_controllers_; // flag indicating whether joint commands are coming from controllers (affects queueing properties of messages)
     bool receive_pelvis_transform_; // flag indicating whether to accept pelvis transforms
@@ -69,6 +73,12 @@ private:
     bool received_joint_command_; // flag indicating whether joint command has been received
     bool publish_commands_; // flag indicating if joint and pelvis information has been received and whole body message can be published
     bool stop_node_; // flag indicating when to publish whole body messages
+
+    bool home_left_arm_; // flag indicating if homing message for left arm should be published
+    bool home_right_arm_; // flag indicating if homing message for right arm should be published
+    bool home_chest_; // flag indicating if homing message for ches should be published
+    bool home_pelvis_; // flag indicating if homing message for pelvis should be published
+    bool publish_go_home_command_; // flag indicating if any homing messages need to be published
 
     dynacore::Vector q_joint_; // vector of commanded joint positions
     tf::Transform tf_pelvis_wrt_world_; // transform of pelvis in world frame

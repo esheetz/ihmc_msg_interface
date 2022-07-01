@@ -489,6 +489,48 @@ namespace IHMCMsgUtils {
         return;
     }
 
+    void makeIHMCHomeLeftArmMessage(controller_msgs::GoHomeMessage& go_home_msg,
+                                    IHMCMessageParameters msg_params)
+    {
+        // set body part, robot side, and trajectory time
+        go_home_msg.humanoid_body_part = go_home_msg.HUMANOID_BODY_PART_ARM;
+        go_home_msg.robot_side = go_home_msg.ROBOT_SIDE_LEFT;
+        go_home_msg.trajectory_time = msg_params.go_home_params.trajectory_time;
+
+        return;
+    }
+
+    void makeIHMCHomeRightArmMessage(controller_msgs::GoHomeMessage& go_home_msg,
+                                     IHMCMessageParameters msg_params)
+    {
+        // set body part, robot side, and trajectory time
+        go_home_msg.humanoid_body_part = go_home_msg.HUMANOID_BODY_PART_ARM;
+        go_home_msg.robot_side = go_home_msg.ROBOT_SIDE_RIGHT;
+        go_home_msg.trajectory_time = msg_params.go_home_params.trajectory_time;
+
+        return;
+    }
+
+    void makeIHMCHomeChestMessage(controller_msgs::GoHomeMessage& go_home_msg,
+                                  IHMCMessageParameters msg_params)
+    {
+        // set body part and trajectory time
+        go_home_msg.humanoid_body_part = go_home_msg.HUMANOID_BODY_PART_CHEST;
+        go_home_msg.trajectory_time = msg_params.go_home_params.trajectory_time;
+
+        return;
+    }
+
+    void makeIHMCHomePelvisMessage(controller_msgs::GoHomeMessage& go_home_msg,
+                                   IHMCMessageParameters msg_params)
+    {
+        // set body part and trajectory time
+        go_home_msg.humanoid_body_part = go_home_msg.HUMANOID_BODY_PART_PELVIS;
+        go_home_msg.trajectory_time = msg_params.go_home_params.trajectory_time;
+
+        return;
+    }
+
     // HELPER FUNCTIONS
     void selectRelevantJointsConfiguration(dynacore::Vector q,
                                            std::vector<int> joint_indices,
