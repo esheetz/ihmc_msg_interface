@@ -6,6 +6,9 @@ project(IHMCMsgInterface)
 
 set(INSTALL_LIB_DIR ${CMAKE_INSTALL_PREFIX}/lib)
 
+#------------------------------------------------------------------------
+#     Build Setup
+#------------------------------------------------------------------------
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   tf
@@ -15,6 +18,10 @@ find_package(catkin REQUIRED COMPONENTS
   controller_msgs
   val_dynacore
 )
+
+#------------------------------------------------------------------------
+#     catkin Setup
+#------------------------------------------------------------------------
 catkin_package(
   CATKIN_DEPENDS roscpp tf geometry_msgs sensor_msgs std_msgs controller_msgs val_dynacore
 )
