@@ -173,6 +173,39 @@ namespace IHMCMsgUtils {
         }
     };
 
+    // STRUCT FOR FINGER TRAJECTORY MESSAGE PARAMETERS
+    struct IHMCFingerTrajectoryParams {
+        // indicies for fingers
+        int thumb_finger_roll;
+        int thumb_finger_proximal;
+        int thumb_finger_distal;
+        int index_finger;
+        int middle_finger;
+        int pinky_finger;
+
+        // motor positions for open/close hand
+        double open_motor_position;
+        double close_motor_position;
+
+        // time for open/close hand
+        double open_hand_time;
+        double close_hand_time;
+
+        // DEFAULT CONSTRUCTOR; sets all parameters to default values
+        IHMCFingerTrajectoryParams() {
+            thumb_finger_roll = 0;
+            thumb_finger_proximal = 1;
+            thumb_finger_distal = 2;
+            index_finger = 3;
+            middle_finger = 4;
+            pinky_finger = 5;
+            open_motor_position = 0.0;
+            close_motor_position = 1.0;
+            open_hand_time = 6.0;
+            close_hand_time = 4.0;
+        }
+    };
+
     // STRUCT FOR WHOLE-BODY MESSAGE PARAMETERS
     struct IHMCMessageParameters {
         // id used to identify message, should be consecutively increasing
@@ -192,11 +225,23 @@ namespace IHMCMsgUtils {
         IHMCWeightMatrixParams weight_matrix_params;
         IHMCTrajectoryPointParams traj_point_params;
         IHMCGoHomeParams go_home_params;
+        IHMCFingerTrajectoryParams finger_traj_params;
 
         // DEFAULT CONSTRUCTOR; sets all parameters to default values
         IHMCMessageParameters() {
             sequence_id = 1;
             // all other params already at defaults
+        }
+
+        void setParametersForFingerMessages() {
+            // change default parameters
+            // (these parameters are based on those set in the MessageFactory used by the valkyrie_gui teleop_panel)
+            sequence_id = 2;
+            queueable_params.execution_mode = 0;
+            queueable_params.message_id = 2;
+            queueable_params.previous_message_id = 0;
+
+            return;
         }
     };
 

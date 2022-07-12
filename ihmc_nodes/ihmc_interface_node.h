@@ -36,6 +36,11 @@ public:
     // PUBLISH MESSAGE
     void publishWholeBodyMessage();
     void publishGoHomeMessage();
+    void publishHandMessage();
+    void publishFingerOpenLeftMessage();
+    void publishFingerCloseLeftMessage();
+    void publishFingerOpenRightMessage();
+    void publishFingerCloseRightMessage();
 
     // HELPER FUNCTIONS
     std::string getStatus();
@@ -46,6 +51,8 @@ public:
     void updateStopNodeFlag();
     bool getPublishGoHomeCommandFlag();
     void updatePublishGoHomeCommandFlag();
+    bool getPublishHandCommandFlag();
+    void updatePublishHandCommandFlag();
     void prepareConfigurationVector();
 
 private:
@@ -63,6 +70,7 @@ private:
 
     ros::Publisher wholebody_pub_; // publisher for wholebody messages
     ros::Publisher go_home_pub_; // publisher for go home messages
+    ros::Publisher finger_pub_; // publisher for finger messages
 
     bool commands_from_controllers_; // flag indicating whether joint commands are coming from controllers (affects queueing properties of messages)
     bool receive_pelvis_transform_; // flag indicating whether to accept pelvis transforms
@@ -79,6 +87,12 @@ private:
     bool home_chest_; // flag indicating if homing message for ches should be published
     bool home_pelvis_; // flag indicating if homing message for pelvis should be published
     bool publish_go_home_command_; // flag indicating if any homing messages need to be published
+
+    bool open_left_hand_; // flag indicating if open left hand message should be published
+    bool close_left_hand_; // flag indicating if close left hand message should be published
+    bool open_right_hand_; // flag indicating if open right hand message should be published
+    bool close_right_hand_; // flag indicating if close right hand message should be published
+    bool publish_hand_command_; // flag indicating if any hand messages need to be published
 
     dynacore::Vector q_joint_; // vector of commanded joint positions
     tf::Transform tf_pelvis_wrt_world_; // transform of pelvis in world frame

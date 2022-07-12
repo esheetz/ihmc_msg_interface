@@ -100,6 +100,28 @@ namespace IHMCMsgUtils {
         return;
     }
 
+    void makeIHMCJointspaceTrajectoryMessage(std::vector<double> q_joints_vector,
+                                             controller_msgs::JointspaceTrajectoryMessage& js_msg,
+                                             IHMCMessageParameters msg_params) {
+        // create dynacore::Vector for joints
+        dynacore::Vector q_joints;
+
+        // resize and clear vector
+        q_joints.resize(q_joints_vector.size());
+        q_joints.setZero();
+
+        // convert from std::vector to dynacore::Vector
+        for( int i = 0 ; i < q_joints_vector.size() ; i++ ) {
+            // set corresponding entry in dynacore::Vector
+            q_joints[i] = q_joints_vector[i];
+        }
+
+        // construct and set JointspaceTrajectoryMessage
+        makeIHMCJointspaceTrajectoryMessage(q_joints, js_msg, msg_params);
+
+        return;
+    }
+
     void makeIHMCNeckTrajectoryMessage(dynacore::Vector q_joints,
                                        controller_msgs::NeckTrajectoryMessage& neck_msg,
                                        IHMCMessageParameters msg_params) {
@@ -527,6 +549,62 @@ namespace IHMCMsgUtils {
         // set body part and trajectory time
         go_home_msg.humanoid_body_part = go_home_msg.HUMANOID_BODY_PART_PELVIS;
         go_home_msg.trajectory_time = msg_params.go_home_params.trajectory_time;
+
+        return;
+    }
+
+    void makeIHMCValkyrieHandFingerTrajectoryMessage(controller_msgs::ValkyrieHandFingerTrajectoryMessage& finger_msg,
+                                                     int robot_side,
+                                                     bool open,
+                                                     IHMCMessageParameters msg_params)
+    {
+        // create vector of fingers
+        std::vector<int> finger_selection{msg_params.finger_traj_params.thumb_finger_roll,
+                                          msg_params.finger_traj_params.thumb_finger_proximal,
+                                          msg_params.finger_traj_params.thumb_finger_distal,
+                                          msg_params.finger_traj_params.index_finger,
+                                          msg_params.finger_traj_params.middle_finger,
+                                          msg_params.finger_traj_params.pinky_finger};
+        
+        // set motor value
+        double motor_value;
+        if( open ) {
+            // open motor position
+            motor_value = msg_params.finger_traj_params.open_motor_position;
+        }
+        else {
+            motor_value = msg_params.finger_traj_params.close_motor_position;
+        }
+
+        // create vector of motor positions
+        std::vector<double> finger_positions;
+        for( int i = 0 ; i < finger_selection.size() ; i++ ) {
+            finger_positions.push_back(motor_value);
+        }
+
+        // make finger trajectory message
+        makeIHMCValkyrieHandFingerTrajectoryMessage(finger_msg, robot_side, finger_selection, finger_positions, msg_params);
+
+        return;
+    }
+
+    void makeIHMCValkyrieHandFingerTrajectoryMessage(controller_msgs::ValkyrieHandFingerTrajectoryMessage& finger_msg,
+                                                     int robot_side,
+                                                     std::vector<int> finger_selection,
+                                                     std::vector<double> finger_positions,
+                                                     IHMCMessageParameters msg_params)
+    {
+        // set sequence id and robot side
+        finger_msg.sequence_id = msg_params.sequence_id;
+        finger_msg.robot_side = robot_side;
+
+        // set motor names
+        for( int i = 0 ; i < finger_selection.size() ; i++ ) {
+            finger_msg.valkyrie_finger_motor_names.push_back(finger_selection[i]);
+        }
+
+        // construct and set JointspaceTrajectoryMessage for hand
+        makeIHMCJointspaceTrajectoryMessage(finger_positions, finger_msg.jointspace_trajectory, msg_params);
 
         return;
     }

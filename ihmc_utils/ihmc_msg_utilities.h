@@ -35,6 +35,7 @@
 #include <controller_msgs/WeightMatrix3DMessage.h>
 #include <controller_msgs/WholeBodyTrajectoryMessage.h>
 #include <controller_msgs/GoHomeMessage.h>
+#include <controller_msgs/ValkyrieHandFingerTrajectoryMessage.h>
 
 namespace IHMCMsgUtils {
 
@@ -108,6 +109,9 @@ namespace IHMCMsgUtils {
      * @post js_msg populated based on the given configuration
      */
     void makeIHMCJointspaceTrajectoryMessage(dynacore::Vector q_joints,
+                                             controller_msgs::JointspaceTrajectoryMessage& js_msg,
+                                             IHMCMessageParameters msg_params);
+    void makeIHMCJointspaceTrajectoryMessage(std::vector<double> q_joints_vector,
                                              controller_msgs::JointspaceTrajectoryMessage& js_msg,
                                              IHMCMessageParameters msg_params);
 
@@ -286,6 +290,34 @@ namespace IHMCMsgUtils {
                                   IHMCMessageParameters msg_params);
     void makeIHMCHomePelvisMessage(controller_msgs::GoHomeMessage& go_home_msg,
                                    IHMCMessageParameters msg_params);
+
+    /*
+     * makes a ValkyrieHandFingerTrajectoryMessage from given finger selections and positions
+     * @param finger_msg, the message to be populated
+     * @param robot_side, an integer representing which arm is being controlled
+     * @param open, a boolean indicating whether hand should be open(true) or close(false)
+     * @param finger_selection, a vector of integers indicating which fingers are being controlled
+     * @param finger_positions, a vector of doubles indicating the desired position for each finger
+     * @param msg_params, the IHMCMessageParameters struct containing parameters for populating the message
+     */
+    void makeIHMCValkyrieHandFingerTrajectoryMessage(controller_msgs::ValkyrieHandFingerTrajectoryMessage& finger_msg,
+                                                     int robot_side,
+                                                     bool open,
+                                                     IHMCMessageParameters msg_params);
+
+    /*
+     * makes a ValkyrieHandFingerTrajectoryMessage from given finger selections and positions
+     * @param finger_msg, the message to be populated
+     * @param robot_side, an integer representing which arm is being controlled
+     * @param finger_selection, a vector of integers indicating which fingers are being controlled
+     * @param finger_positions, a vector of doubles indicating the desired position for each finger
+     * @param msg_params, the IHMCMessageParameters struct containing parameters for populating the message
+     */
+    void makeIHMCValkyrieHandFingerTrajectoryMessage(controller_msgs::ValkyrieHandFingerTrajectoryMessage& finger_msg,
+                                                     int robot_side,
+                                                     std::vector<int> finger_selection,
+                                                     std::vector<double> finger_positions,
+                                                     IHMCMessageParameters msg_params);
 
     // HELPER FUNCTIONS
     /*

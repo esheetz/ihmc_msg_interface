@@ -66,6 +66,12 @@ IHMCInterfaceNode::IHMCInterfaceNode(const ros::NodeHandle& nh) {
     home_pelvis_ = false;
     publish_go_home_command_ = false;
 
+    open_left_hand_ = false;
+    close_left_hand_ = false;
+    open_right_hand_ = false;
+    close_right_hand_ = false;
+    publish_hand_command_ = false;
+
     // set initial empty status
     status_ = std::string("");
 
@@ -89,6 +95,7 @@ bool IHMCInterfaceNode::initializeConnections() {
     // publishers for sending whole-body messages
     wholebody_pub_ = nh_.advertise<controller_msgs::WholeBodyTrajectoryMessage>("/ihmc/valkyrie/humanoid_control/input/whole_body_trajectory", 1);
     go_home_pub_ = nh_.advertise<controller_msgs::GoHomeMessage>("/ihmc/valkyrie/humanoid_control/input/go_home", 20);
+    finger_pub_ = nh_.advertise<controller_msgs::ValkyrieHandFingerTrajectoryMessage>("/ihmc/valkyrie/humanoid_control/input/valkyrie_hand_finger_trajectory", 10);
 
     return true;
 }
@@ -285,6 +292,54 @@ void IHMCInterfaceNode::statusCallback(const std_msgs::String& status_msg) {
 
         ROS_INFO("[IHMC Interface Node] Homing pelvis...");
     }
+    else if( status_msg.data == std::string("OPEN-LEFT-HAND") ) {
+        // set status
+        status_ = status_msg.data;
+
+        // set flag
+        open_left_hand_ = true;
+
+        // update flag to publish hand message
+        updatePublishHandCommandFlag();
+
+        ROS_INFO("[IHMC Interface Node] Opening left hand...");
+    }
+    else if( status_msg.data == std::string("CLOSE-LEFT-HAND") ) {
+        // set status
+        status_ = status_msg.data;
+
+        // set flag
+        close_left_hand_ = true;
+
+        // update flag to publish hand message
+        updatePublishHandCommandFlag();
+
+        ROS_INFO("[IHMC Interface Node] Closing left hand...");
+    }
+    else if( status_msg.data == std::string("OPEN-RIGHT-HAND") ) {
+        // set status
+        status_ = status_msg.data;
+
+        // set flag
+        open_right_hand_ = true;
+
+        // update flag to publish hand message
+        updatePublishHandCommandFlag();
+
+        ROS_INFO("[IHMC Interface Node] Opening right hand...");
+    }
+    else if( status_msg.data == std::string("CLOSE-RIGHT-HAND") ) {
+        // set status
+        status_ = status_msg.data;
+
+        // set flag
+        close_right_hand_ = true;
+
+        // update flag to publish hand message
+        updatePublishHandCommandFlag();
+
+        ROS_INFO("[IHMC Interface Node] Closing right hand...");
+    }
     else {
         ROS_WARN("[IHMC Interface Node] Unrecognized status %s, ignoring status message", status_msg.data.c_str());
     }
@@ -383,6 +438,121 @@ void IHMCInterfaceNode::publishGoHomeMessage() {
     return;
 }
 
+void IHMCInterfaceNode::publishHandMessage() {
+    // open left hand
+    if( open_left_hand_ ) {
+        // publish message
+        publishFingerOpenLeftMessage();
+
+        // reset flag
+        open_left_hand_ = false;
+    }
+
+    // close left hand
+    if( close_left_hand_ ) {
+        // publish message
+        publishFingerCloseLeftMessage();
+
+        // reset flag
+        close_left_hand_ = false;
+    }
+
+    // open right hand
+    if( open_right_hand_ ) {
+        // publish message
+        publishFingerOpenRightMessage();
+
+        // reset flag
+        open_right_hand_ = false;
+    }
+
+    // close right hand
+    if( close_right_hand_ ) {
+        // publish message
+        publishFingerCloseRightMessage();
+
+        // reset flag
+        close_right_hand_ = false;
+    }
+
+    // update flag to publish hand message
+    updatePublishHandCommandFlag();
+
+    return;
+}
+
+void IHMCInterfaceNode::publishFingerOpenLeftMessage() {
+    // initialize struct of default IHMC message parameters
+    IHMCMsgUtils::IHMCMessageParameters msg_params;
+    // modify default parameters for finger messages
+    msg_params.setParametersForFingerMessages();
+    // set time for trajectory
+    msg_params.traj_point_params.time = msg_params.finger_traj_params.open_hand_time;
+
+    // create finger message
+    controller_msgs::ValkyrieHandFingerTrajectoryMessage finger_msg;
+    IHMCMsgUtils::makeIHMCValkyrieHandFingerTrajectoryMessage(finger_msg, finger_msg.ROBOT_SIDE_LEFT, true, msg_params);
+
+    // publish message
+    finger_pub_.publish(finger_msg);
+
+    return;
+}
+
+void IHMCInterfaceNode::publishFingerCloseLeftMessage() {
+    // initialize struct of default IHMC message parameters
+    IHMCMsgUtils::IHMCMessageParameters msg_params;
+    // modify default parameters for finger messages
+    msg_params.setParametersForFingerMessages();
+    // set time for trajectory
+    msg_params.traj_point_params.time = msg_params.finger_traj_params.close_hand_time;
+
+    // create finger message
+    controller_msgs::ValkyrieHandFingerTrajectoryMessage finger_msg;
+    IHMCMsgUtils::makeIHMCValkyrieHandFingerTrajectoryMessage(finger_msg, finger_msg.ROBOT_SIDE_LEFT, false, msg_params);
+
+    // publish message
+    finger_pub_.publish(finger_msg);
+
+    return;
+}
+
+void IHMCInterfaceNode::publishFingerOpenRightMessage() {
+    // initialize struct of default IHMC message parameters
+    IHMCMsgUtils::IHMCMessageParameters msg_params;
+    // modify default parameters for finger messages
+    msg_params.setParametersForFingerMessages();
+    // set time for trajectory
+    msg_params.traj_point_params.time = msg_params.finger_traj_params.open_hand_time;
+
+    // create finger message
+    controller_msgs::ValkyrieHandFingerTrajectoryMessage finger_msg;
+    IHMCMsgUtils::makeIHMCValkyrieHandFingerTrajectoryMessage(finger_msg, finger_msg.ROBOT_SIDE_RIGHT, true, msg_params);
+
+    // publish message
+    finger_pub_.publish(finger_msg);
+
+    return;
+}
+
+void IHMCInterfaceNode::publishFingerCloseRightMessage() {
+    // initialize struct of default IHMC message parameters
+    IHMCMsgUtils::IHMCMessageParameters msg_params;
+    // modify default parameters for finger messages
+    msg_params.setParametersForFingerMessages();
+    // set time for trajectory
+    msg_params.traj_point_params.time = msg_params.finger_traj_params.close_hand_time;
+
+    // create finger message
+    controller_msgs::ValkyrieHandFingerTrajectoryMessage finger_msg;
+    IHMCMsgUtils::makeIHMCValkyrieHandFingerTrajectoryMessage(finger_msg, finger_msg.ROBOT_SIDE_RIGHT, false, msg_params);
+
+    // publish message
+    finger_pub_.publish(finger_msg);
+
+    return;
+}
+
 // HELPER FUNCTIONS
 std::string IHMCInterfaceNode::getStatus() {
     return status_;
@@ -421,6 +591,17 @@ bool IHMCInterfaceNode::getPublishGoHomeCommandFlag() {
 void IHMCInterfaceNode::updatePublishGoHomeCommandFlag() {
     // if any body parts need to be homed, then go home message(s) need to be published
     publish_go_home_command_ = home_left_arm_ || home_right_arm_ || home_chest_ || home_pelvis_;
+
+    return;
+}
+
+bool IHMCInterfaceNode::getPublishHandCommandFlag() {
+    return publish_hand_command_;
+}
+
+void IHMCInterfaceNode::updatePublishHandCommandFlag() {
+    // if any hand message needs to be opened/closed, then hand message needs to be published
+    publish_hand_command_ = open_left_hand_ || close_left_hand_ || open_right_hand_ || close_right_hand_;
 
     return;
 }
@@ -482,17 +663,24 @@ int main(int argc, char **argv) {
         // check if commands coming from controllers
         if( ihmc_interface_node.getCommandsFromControllersFlag() ) {
             // consistently publish messages until controllers converge
-            if ( ihmc_interface_node.getPublishCommandsFlag() ) {
+            if( ihmc_interface_node.getPublishCommandsFlag() ) {
                 // ready to publish commands
                 ROS_INFO("[IHMC Interface Node] Preparing and streaming whole-body message...");
                 ihmc_interface_node.publishWholeBodyMessage();
             }
 
             // check if any body parts need to be homed
-            if (ihmc_interface_node.getPublishGoHomeCommandFlag() ) {
+            if( ihmc_interface_node.getPublishGoHomeCommandFlag() ) {
                 // ready to publish homing message
                 ROS_INFO("[IHMC Interface Node] Publishing go home message...");
                 ihmc_interface_node.publishGoHomeMessage();
+            }
+
+            // check if any hands need to be opened/closed
+            if( ihmc_interface_node.getPublishHandCommandFlag() ) {
+                // ready to publish hand message
+                ROS_INFO("[IHMC Interface Node] Publishing hand finger trajectory message...");
+                ihmc_interface_node.publishHandMessage();
             }
         }
         else {
