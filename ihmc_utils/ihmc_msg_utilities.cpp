@@ -75,6 +75,39 @@ namespace IHMCMsgUtils {
         return;
     }
 
+    void makeIHMCHandTrajectoryMessage(dynacore::Vect3 pos,
+                                       dynacore::Quaternion quat,
+                                       controller_msgs::HandTrajectoryMessage& hand_msg,
+                                       int robot_side,
+                                       IHMCMessageParameters msg_params) {
+        // set sequence id and robot side
+        hand_msg.sequence_id = msg_params.sequence_id;
+        hand_msg.robot_side = robot_side;
+
+        // set frame information based on reference frame
+        int trajectory_reference_frame;
+        int data_reference_frame;
+        if( msg_params.frame_params.cartesian_goal_reference_frame_name == std::string("pelvis") ) {
+            // pelvis frame
+            trajectory_reference_frame = msg_params.frame_params.trajectory_reference_frame_id_pelviszup;
+            data_reference_frame = msg_params.frame_params.data_reference_frame_id_pelviszup;
+        }
+        else {
+            // world frame
+            trajectory_reference_frame = msg_params.frame_params.trajectory_reference_frame_id_world;
+            data_reference_frame = msg_params.frame_params.data_reference_frame_id_world;
+        }
+
+        // construct and set SE3TrajectoryMessage for hand
+        makeIHMCSE3TrajectoryMessage(pos, quat,
+                                     hand_msg.se3_trajectory,
+                                     trajectory_reference_frame,
+                                     data_reference_frame,
+                                     msg_params);
+
+        return;
+    }
+
     void makeIHMCJointspaceTrajectoryMessage(dynacore::Vector q_joints,
                                              controller_msgs::JointspaceTrajectoryMessage& js_msg,
                                              IHMCMessageParameters msg_params) {
@@ -511,6 +544,174 @@ namespace IHMCMsgUtils {
         return;
     }
 
+    void makeIHMCWholeBodyTrajectoryMessage(dynacore::Vector q,
+                                            dynacore::Vect3 left_hand_pos, dynacore::Quaternion left_hand_quat,
+                                            dynacore::Vect3 right_hand_pos, dynacore::Quaternion right_hand_quat,
+                                            controller_msgs::WholeBodyTrajectoryMessage& wholebody_msg,
+                                            IHMCMessageParameters msg_params) {
+        // set sequence id
+        wholebody_msg.sequence_id = msg_params.sequence_id;
+
+        // check what links given configuration is controlling
+        // we will not set whole-body message information for not controlled links
+        bool control_pelvis = checkControlledLink(msg_params.controlled_links, valkyrie_link::pelvis);
+        bool control_chest = checkControlledLink(msg_params.controlled_links, valkyrie_link::torso);
+        bool control_rfoot = checkControlledLink(msg_params.controlled_links, valkyrie_link::rightCOP_Frame);
+        bool control_lfoot = checkControlledLink(msg_params.controlled_links, valkyrie_link::leftCOP_Frame);
+        bool control_rarm = checkControlledLink(msg_params.controlled_links, valkyrie_link::rightPalm);
+        bool control_larm = checkControlledLink(msg_params.controlled_links, valkyrie_link::leftPalm);
+        bool control_neck = checkControlledLink(msg_params.controlled_links, valkyrie_link::head);
+        // not used:
+        // bool control_rfoot = checkControlledLink(msg_params.controlled_links, valkyrie_link::rightFoot);
+        // bool control_lfoot = checkControlledLink(msg_params.controlled_links, valkyrie_link::leftFoot);
+
+        if( msg_params.cartesian_hand_goals ) { // cartesian goals for arms
+            // HAND TRAJECTORIES
+
+            // apply fixed offset to hand poses
+            dynacore::Vect3 offset_left_hand_pos(left_hand_pos);
+            dynacore::Quaternion offset_left_hand_quat(left_hand_quat);
+            dynacore::Vect3 offset_right_hand_pos(right_hand_pos);
+            dynacore::Quaternion offset_right_hand_quat(right_hand_quat);
+            bool success = applyHandOffset(offset_left_hand_pos, offset_left_hand_quat,
+                                           offset_right_hand_pos, offset_right_hand_quat,
+                                           msg_params.frame_params.cartesian_goal_reference_frame_name);
+            if( !success ) {
+                std::cout << "***** [IHMCMsgUtilities] Could not apply offset to Cartesian hand targets. Not creating whole-body message." << std::endl;
+                return;
+            }
+
+            if( control_larm ) {
+                // construct and set hand message for left hand
+                makeIHMCHandTrajectoryMessage(offset_left_hand_pos, offset_left_hand_quat,
+                                              wholebody_msg.left_hand_trajectory_message,
+                                              0, msg_params);
+            }
+
+            if( control_rarm ) {
+                // construct and set hand message for right hand
+                makeIHMCHandTrajectoryMessage(offset_right_hand_pos, offset_right_hand_quat,
+                                              wholebody_msg.right_hand_trajectory_message,
+                                              1, msg_params);
+            }
+        }
+        else { // jointspace goals for arms
+            // ARM TRAJECTORIES
+            if( control_larm ) {
+                // get relevant joint indices for left arm
+                std::vector<int> larm_joint_indices;
+                getRelevantJointIndicesLeftArm(larm_joint_indices);
+                // get relevant configuration values for left arm
+                dynacore::Vector q_larm;
+                selectRelevantJointsConfiguration(q, larm_joint_indices, q_larm);
+                // construct and set arm message for left arm
+                makeIHMCArmTrajectoryMessage(q_larm,
+                                             wholebody_msg.left_arm_trajectory_message,
+                                             0, msg_params);
+            }
+
+            if( control_rarm ) {
+                // get relevant joint indices for right arm
+                std::vector<int> rarm_joint_indices;
+                getRelevantJointIndicesRightArm(rarm_joint_indices);
+                // get relevant configuration values for right arm
+                dynacore::Vector q_rarm;
+                selectRelevantJointsConfiguration(q, rarm_joint_indices, q_rarm);
+                // construct and set arm message for right arm
+                makeIHMCArmTrajectoryMessage(q_rarm,
+                                             wholebody_msg.right_arm_trajectory_message,
+                                             1, msg_params);
+            }
+        }
+
+        // CHEST TRAJECTORY
+        if( control_chest ) {
+            // get orientation of chest induced by configuration
+            dynacore::Quaternion chest_quat;
+            getChestOrientation(q, chest_quat);
+            // construct and set chest message
+            makeIHMCChestTrajectoryMessage(chest_quat, wholebody_msg.chest_trajectory_message, msg_params);
+        }
+
+        // SPINE TRAJECTORY
+        /*
+         * NOTE: spine trajectories work well in sim, but not on real robot;
+         * the code below has been tested in sim and works,
+         * but is commented out since it is unreliable in practice
+         */
+        /*
+        if( control_chest ) {
+            // get relevant joint indices for spine
+            std::vector<int> torso_joint_indices;
+            getRelevantJointIndicesTorso(torso_joint_indices);
+            // get relevant configuration values for spine
+            dynacore::Vector q_spine;
+            selectRelevantJointsConfiguration(q, torso_joint_indices, q_spine);
+            // construct and set spine message
+            makeIHMCSpineTrajectoryMessage(q_spine, wholebody_msg.spine_trajectory_message, msg_params);
+        }
+        */
+
+        // PELVIS TRAJECTORY
+        if( control_pelvis ) {
+            // get relevant joint indices for pelvis
+            std::vector<int> pelvis_joint_indices;
+            getRelevantJointIndicesPelvis(pelvis_joint_indices);
+            // get relevant configuration values for pelvis
+            dynacore::Vector q_pelvis;
+            selectRelevantJointsConfiguration(q, pelvis_joint_indices, q_pelvis);
+            // construct and set pelvis message
+            makeIHMCPelvisTrajectoryMessage(q_pelvis, wholebody_msg.pelvis_trajectory_message, msg_params);
+        }
+
+        // FOOT TRAJECTORIES
+        /*
+         * NOTE: foot trajectories will be complicated to send because
+         * IHMC interface has safety features to prevent moving feet when robot is already standing;
+         * the code below has been tested in sim and it does seem to move the feet,
+         * but not accurately due to balance issues;
+         * sending foot trajectories also seems to interfere with arms,
+         * so code is commented out since we will trust the robot to balance on its own
+         */
+        /*
+        // get poses of feet induced by configuration
+        dynacore::Vect3 lfoot_pos;
+        dynacore::Quaternion lfoot_quat;
+        dynacore::Vect3 rfoot_pos;
+        dynacore::Quaternion rfoot_quat;
+        getFeetPoses(q, lfoot_pos, lfoot_quat, rfoot_pos, rfoot_quat);
+        if( control_lfoot ) {
+            // construct and set left foot message
+            makeIHMCFootTrajectoryMessage(lfoot_pos, lfoot_quat,
+                                          wholebody_msg.left_foot_trajectory_message,
+                                          0, msg_params);
+        }
+        if( control_rfoot ) {
+            // construct and set right foot message
+            makeIHMCFootTrajectoryMessage(rfoot_pos, rfoot_quat,
+                                          wholebody_msg.left_foot_trajectory_message,
+                                          1, msg_params);
+        }
+        */
+
+        // NECK TRAJECTORY
+        if( control_neck ) {
+            // get relevant joint indices for neck
+            std::vector<int> neck_joint_indices;
+            getRelevantJointIndicesNeck(neck_joint_indices);
+            // get relevant configuration values for neck
+            dynacore::Vector q_neck;
+            selectRelevantJointsConfiguration(q, neck_joint_indices, q_neck);
+            // construct and set neck message
+            makeIHMCNeckTrajectoryMessage(q_neck, wholebody_msg.neck_trajectory_message, msg_params);
+        }
+
+        // HEAD TRAJECTORY
+        // do not set trajectory for head: wholebody_msg.head_trajectory_message
+
+        return;
+    }
+
     void makeIHMCHomeLeftArmMessage(controller_msgs::GoHomeMessage& go_home_msg,
                                     IHMCMessageParameters msg_params)
     {
@@ -806,6 +1007,171 @@ namespace IHMCMsgUtils {
         it = std::find(controlled_links.begin(), controlled_links.end(), link_id);
 
         return (it != controlled_links.end());
+    }
+
+    bool applyHandOffset(dynacore::Vect3& left_hand_pos, dynacore::Quaternion& left_hand_quat,
+                         dynacore::Vect3& right_hand_pos, dynacore::Quaternion& right_hand_quat,
+                         std::string frame_id) {
+        // NOTE: dynacore::Transforms are Eigen affine transforms
+        //       in a d-dimensional space, affine transforms are (d+1)x(d+1) matrices
+        //       where the last row is [0 ... 0 1]
+        //       affine transforms are structured as follows:
+        //          [[linear    translation]
+        //           [0 ... 0        1     ]]
+        //       so in a 4x4 affine transformation,
+        //       the linear part of the transform represents the rotation and
+        //       the translation part of the transform represents the translation
+
+        // GET INPUT POSES IN WORLD FRAME
+        // initialize targets in world frame
+        dynacore::Vect3 left_hand_pos_wrt_world;
+        dynacore::Quaternion left_hand_quat_wrt_world;
+        dynacore::Vect3 right_hand_pos_wrt_world;
+        dynacore::Quaternion right_hand_quat_wrt_world;
+
+        // check target hand pose frame ID and transform into world, if necessary
+        bool transformed_targets = false;
+        bool left_success;
+        bool right_success;
+        if( frame_id.compare(std::string("world")) != 0 ) {
+            // transformation needed, set flag
+            transformed_targets = true;
+
+            // transform targets into world frame
+            left_success = transformDynacorePose(frame_id, left_hand_pos, left_hand_quat,
+                                                 std::string("world"), left_hand_pos_wrt_world, left_hand_quat_wrt_world);
+            right_success = transformDynacorePose(frame_id, right_hand_pos, right_hand_quat,
+                                                  std::string("world"), right_hand_pos_wrt_world, right_hand_quat_wrt_world);
+
+            // check success of both transforms
+            if( !left_success || !right_success ) {
+                return false;
+            }
+        }
+        else {
+            // already in world frame, set targets
+            left_hand_pos_wrt_world = left_hand_pos;
+            left_hand_quat_wrt_world = left_hand_quat;
+            right_hand_pos_wrt_world = right_hand_pos;
+            right_hand_quat_wrt_world = right_hand_quat;
+        }
+
+        // APPLY HAND OFFSET
+        // initialize hand transforms
+        dynacore::Transform left_pose_wrt_world;
+        left_pose_wrt_world.translation() = left_hand_pos_wrt_world;
+        left_pose_wrt_world.linear() = left_hand_quat_wrt_world.normalized().toRotationMatrix();
+        dynacore::Transform right_pose_wrt_world;
+        right_pose_wrt_world.translation() = right_hand_pos_wrt_world;
+        right_pose_wrt_world.linear() = right_hand_quat_wrt_world.normalized().toRotationMatrix();
+
+        // initialize hand offset transform
+        dynacore::Vect3 hand_translation_offset;
+        hand_translation_offset << 0.025, -0.07, 0.0;
+        Eigen::AngleAxisd hand_rotational_offset(M_PI/2, dynacore::Vect3(0, 0, -1));
+
+        // initialize hand offset transform
+        dynacore::Transform hand_offset;
+        hand_offset.translation() = hand_translation_offset;
+        hand_offset.linear() = hand_rotational_offset.toRotationMatrix();
+
+        // compute transformed poses
+        dynacore::Transform offset_left_pose_wrt_world = left_pose_wrt_world * hand_offset;
+        dynacore::Transform offset_right_pose_wrt_world = right_pose_wrt_world * hand_offset;
+
+        // initialize offsets in world frame
+        dynacore::Vect3 offset_left_hand_pos_wrt_world(offset_left_pose_wrt_world.translation());
+        dynacore::Quaternion offset_left_hand_quat_wrt_world(offset_left_pose_wrt_world.linear());
+        dynacore::Vect3 offset_right_hand_pos_wrt_world(offset_right_pose_wrt_world.translation());
+        dynacore::Quaternion offset_right_hand_quat_wrt_world(offset_right_pose_wrt_world.linear());
+
+        // GET POSES IN GIVEN FRAME
+        // initialize targets in given frame
+        dynacore::Vect3 left_hand_pos_offset;
+        dynacore::Quaternion left_hand_quat_offset;
+        dynacore::Vect3 right_hand_pos_offset;
+        dynacore::Quaternion right_hand_quat_offset;
+
+        // transform back to original frame, if necessary
+        if( transformed_targets ) {
+            // transform targets into given frame
+            left_success = transformDynacorePose(std::string("world"), offset_left_hand_pos_wrt_world, offset_left_hand_quat_wrt_world,
+                                                 frame_id, left_hand_pos_offset, left_hand_quat_offset);
+            right_success = transformDynacorePose(std::string("world"), offset_right_hand_pos_wrt_world, offset_right_hand_quat_wrt_world,
+                                                  frame_id, right_hand_pos_offset, right_hand_quat_offset);
+
+            // check success of both transforms
+            if( !left_success || !right_success ) {
+                return false;
+            }
+        }
+        else {
+            // already in world frame, set targets
+            left_hand_pos_offset = offset_left_hand_pos_wrt_world;
+            left_hand_quat_offset = offset_left_hand_quat_wrt_world;
+            right_hand_pos_offset = offset_right_hand_pos_wrt_world;
+            right_hand_quat_offset = offset_right_hand_quat_wrt_world;
+        }
+
+        // UPDATE GIVEN POSES WITH OFFSET
+        // update given hand poses to be offset poses
+        left_hand_pos = left_hand_pos_offset;
+        left_hand_quat = left_hand_quat_offset;
+        left_hand_quat.normalize();
+        right_hand_pos = right_hand_pos_offset;
+        right_hand_quat = right_hand_quat_offset;
+        right_hand_quat.normalize();
+        // TODO verify that this is correct; is the offset different if the given pose is in pelvis frame?
+
+        return true;
+    }
+
+    bool transformDynacorePose(std::string frame_id_in, dynacore::Vect3 pos_in, dynacore::Quaternion quat_in,
+                               std::string frame_id_out, dynacore::Vect3& pos_out, dynacore::Quaternion& quat_out) {
+        // create transform listener
+        tf::TransformListener tf;
+
+        // CONVERT FROM DYNACORE POSE TO TF POSE
+        // initialize stamped pose
+        ros::Time now = ros::Time::now();
+        geometry_msgs::PoseStamped pose_in_msg;
+        pose_in_msg.pose.position.x = pos_in[0];
+        pose_in_msg.pose.position.y = pos_in[1];
+        pose_in_msg.pose.position.z = pos_in[2];
+        pose_in_msg.pose.orientation.x = quat_in.x();
+        pose_in_msg.pose.orientation.y = quat_in.y();
+        pose_in_msg.pose.orientation.z = quat_in.z();
+        pose_in_msg.pose.orientation.w = quat_in.w();
+        pose_in_msg.header.frame_id = frame_id_in;
+        pose_in_msg.header.stamp = ros::Time::now();
+
+        // initialize transformed pose
+        geometry_msgs::PoseStamped pose_out_msg;
+
+        // TRANSFORM POSE
+        // try getting transformation
+        try {
+            // wait for most recent transform
+            tf.waitForTransform(frame_id_out, frame_id_in, ros::Time(0), ros::Duration(2.0));
+            // transform pose into target frame
+            tf.transformPose(frame_id_out, pose_in_msg, pose_out_msg);
+        }
+        catch (tf2::TransformException ex) {
+            std::cout << "***** [IHMCMsgUtilities] No transform from " << frame_id_in << " to " << frame_id_out << "." << std::endl;
+            return false;
+        }
+
+        // CONVERT FROM TF POSE TO DYNACORE POSE
+        // set transformed pose
+        pos_out << pose_out_msg.pose.position.x,
+                   pose_out_msg.pose.position.y,
+                   pose_out_msg.pose.position.z;
+        quat_out.x() = pose_out_msg.pose.orientation.x;
+        quat_out.y() = pose_out_msg.pose.orientation.y;
+        quat_out.z() = pose_out_msg.pose.orientation.z;
+        quat_out.w() = pose_out_msg.pose.orientation.w;
+
+        return true;
     }
 
 } // end namespace IHMCMsgUtilities

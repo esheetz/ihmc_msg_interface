@@ -22,6 +22,10 @@ IHMCInterfaceNode::IHMCInterfaceNode(const ros::NodeHandle& nh) {
               std::string("controllers/output/ihmc/joint_commands"));
     nh_.param("status_topic", status_topic_,
               std::string("controllers/output/ihmc/controller_status"));
+    nh_.param("hand_pose_command_topic", hand_pose_command_topic_,
+              std::string("controllers/output/ihmc/cartesian_hand_targets"));
+    nh_.param("receive_cartesian_goals_topic", receive_cartesian_goals_topic_,
+              std::string("controllers/output/ihmc/receive_cartesian_goals"));
 
     // if coming from controllers, update topic names to come from managing node
     if( commands_from_controllers_ ) {
@@ -29,6 +33,8 @@ IHMCInterfaceNode::IHMCInterfaceNode(const ros::NodeHandle& nh) {
         controlled_link_topic_ = managing_node + controlled_link_topic_;
         joint_command_topic_ = managing_node + joint_command_topic_;
         status_topic_ = managing_node + status_topic_;
+        hand_pose_command_topic_ = managing_node + hand_pose_command_topic_;
+        receive_cartesian_goals_topic_ = managing_node + receive_cartesian_goals_topic_;
     }
 
     initializeConnections();
@@ -55,8 +61,11 @@ IHMCInterfaceNode::IHMCInterfaceNode(const ros::NodeHandle& nh) {
         controlled_links_.push_back(valkyrie_link::leftPalm);
         controlled_links_.push_back(valkyrie_link::head);
     }
+    cartesian_hand_goals_ = false;
     received_pelvis_transform_ = false;
     received_joint_command_ = false;
+    received_left_hand_goal_ = false;
+    received_right_hand_goal_ = false;
     publish_commands_ = false;
     stop_node_ = false;
 
@@ -70,6 +79,7 @@ IHMCInterfaceNode::IHMCInterfaceNode(const ros::NodeHandle& nh) {
     close_left_hand_ = false;
     open_right_hand_ = false;
     close_right_hand_ = false;
+    publish_finger_command_ = false;
     publish_hand_command_ = false;
 
     // set initial empty status
@@ -90,6 +100,8 @@ bool IHMCInterfaceNode::initializeConnections() {
     if( commands_from_controllers_ ) {
         controlled_link_sub_ = nh_.subscribe(controlled_link_topic_, 1, &IHMCInterfaceNode::controlledLinkIdsCallback, this);
         status_sub_ = nh_.subscribe(status_topic_, 20, &IHMCInterfaceNode::statusCallback, this);
+        hand_pose_command_sub_ = nh_.subscribe(hand_pose_command_topic_, 1, &IHMCInterfaceNode::handPoseCommandCallback, this);
+        receive_cartesian_goals_sub_ = nh_.subscribe(receive_cartesian_goals_topic_, 1, &IHMCInterfaceNode::receiveCartesianGoalsCallback, this);
     }
 
     // publishers for sending whole-body messages
@@ -299,8 +311,8 @@ void IHMCInterfaceNode::statusCallback(const std_msgs::String& status_msg) {
         // set flag
         open_left_hand_ = true;
 
-        // update flag to publish hand message
-        updatePublishHandCommandFlag();
+        // update flag to publish finger message
+        updatePublishFingerCommandFlag();
 
         ROS_INFO("[IHMC Interface Node] Opening left hand...");
     }
@@ -311,8 +323,8 @@ void IHMCInterfaceNode::statusCallback(const std_msgs::String& status_msg) {
         // set flag
         close_left_hand_ = true;
 
-        // update flag to publish hand message
-        updatePublishHandCommandFlag();
+        // update flag to publish finger message
+        updatePublishFingerCommandFlag();
 
         ROS_INFO("[IHMC Interface Node] Closing left hand...");
     }
@@ -323,8 +335,8 @@ void IHMCInterfaceNode::statusCallback(const std_msgs::String& status_msg) {
         // set flag
         open_right_hand_ = true;
 
-        // update flag to publish hand message
-        updatePublishHandCommandFlag();
+        // update flag to publish finger message
+        updatePublishFingerCommandFlag();
 
         ROS_INFO("[IHMC Interface Node] Opening right hand...");
     }
@@ -335,14 +347,79 @@ void IHMCInterfaceNode::statusCallback(const std_msgs::String& status_msg) {
         // set flag
         close_right_hand_ = true;
 
-        // update flag to publish hand message
-        updatePublishHandCommandFlag();
+        // update flag to publish finger message
+        updatePublishFingerCommandFlag();
 
         ROS_INFO("[IHMC Interface Node] Closing right hand...");
     }
     else {
         ROS_WARN("[IHMC Interface Node] Unrecognized status %s, ignoring status message", status_msg.data.c_str());
     }
+    return;
+}
+
+void IHMCInterfaceNode::handPoseCommandCallback(const geometry_msgs::TransformStamped& tf_msg) {
+    if( cartesian_hand_goals_ ) {
+        // check for left hand goal
+        if( tf_msg.child_frame_id.find(std::string("left")) != std::string::npos ) {
+            // store left target
+            left_hand_target_ = tf_msg;
+            // set flag indicating hand goal has been received
+            received_left_hand_goal_ = true;
+        }
+        // check for right hand goal
+        else if( tf_msg.child_frame_id.find(std::string("right")) != std::string::npos ) {
+            // store right target
+            right_hand_target_ = tf_msg;
+            // set flag indicating hand goal has been received
+            received_right_hand_goal_ = true;
+        }
+        else {
+            ROS_WARN("[IHMC Interface Node] Unrecognized child frame id %s, ignoring hand pose command message", tf_msg.child_frame_id.c_str());
+            return;
+        }
+    }
+
+    // update flag to publish hand commands
+    updatePublishHandCommandFlag();
+
+    return;
+}
+
+void IHMCInterfaceNode::receiveCartesianGoalsCallback(const std_msgs::Bool& bool_msg) {
+    // update Cartesian goals flag based on message
+    cartesian_hand_goals_ = bool_msg.data;
+
+    // status of Cartesian goals has changed; reset targets
+    geometry_msgs::TransformStamped empty_tf_msg;
+    left_hand_target_ = empty_tf_msg;
+    right_hand_target_ = empty_tf_msg;
+
+    // update flags
+    if( cartesian_hand_goals_ ) {
+        // prepare to receive Cartesian hand goals
+        received_left_hand_goal_ = false;
+        received_right_hand_goal_ = false;
+
+        // update flag to publish hand commands
+        updatePublishHandCommandFlag();
+
+        ROS_INFO("[IHMC Interface Node] Accepting Cartesian hand goals");
+    }
+    else {
+        // not receiving Cartesian hand goals
+        received_left_hand_goal_ = false;
+        received_right_hand_goal_ = false;
+
+        // update flag to publish hand commands
+        updatePublishHandCommandFlag();
+
+        // update flag to stop node
+        updateStopNodeFlag();
+
+        ROS_INFO("[IHMC Interface Node] Not accepting Cartesian hand goals");
+    }
+
     return;
 }
 
@@ -372,6 +449,51 @@ void IHMCInterfaceNode::publishWholeBodyMessage() {
 
     // publish message
     wholebody_pub_.publish(wholebody_msg);
+
+    return;
+}
+
+void IHMCInterfaceNode::publishWholeBodyMessageCartesianHandGoals() {
+    // initialize left and right hand goals, frame id, and controlled links
+    dynacore::Vect3 left_pos;
+    dynacore::Quaternion left_quat;
+    dynacore::Vect3 right_pos;
+    dynacore::Quaternion right_quat;
+    std::string cartesian_frame_id;
+    std::vector<int> controlled_links;
+
+    // prepare left and right goals
+    bool proceed = prepareCartesianHandGoals(left_pos, left_quat, right_pos, right_quat, cartesian_frame_id, controlled_links);
+
+    if( !proceed ) {
+        ROS_WARN("[IHMC Interface Node] Not publishing whole-body message");
+        return;
+    }
+
+    // initialize struct of default IHMC message parameters
+    IHMCMsgUtils::IHMCMessageParameters msg_params;
+    // set controlled links
+    msg_params.controlled_links = controlled_links;
+
+    // update message parameters for Cartesian goals
+    msg_params.cartesian_hand_goals = cartesian_hand_goals_;
+    msg_params.frame_params.cartesian_goal_reference_frame_name = cartesian_frame_id;
+
+    // create whole-body message
+    controller_msgs::WholeBodyTrajectoryMessage wholebody_msg;
+    IHMCMsgUtils::makeIHMCWholeBodyTrajectoryMessage(q_, left_pos, left_quat, right_pos, right_quat,
+                                                     wholebody_msg, msg_params);
+    // configuration vector q_ will not be used
+
+    // publish message
+    wholebody_pub_.publish(wholebody_msg);
+
+    // reset flags since received targets have been processed
+    received_left_hand_goal_ = false;
+    received_right_hand_goal_ = false;
+
+    // update flag to publish hand message
+    updatePublishHandCommandFlag();
 
     return;
 }
@@ -438,7 +560,7 @@ void IHMCInterfaceNode::publishGoHomeMessage() {
     return;
 }
 
-void IHMCInterfaceNode::publishHandMessage() {
+void IHMCInterfaceNode::publishHandFingerMessage() {
     // open left hand
     if( open_left_hand_ ) {
         // publish message
@@ -476,7 +598,7 @@ void IHMCInterfaceNode::publishHandMessage() {
     }
 
     // update flag to publish hand message
-    updatePublishHandCommandFlag();
+    updatePublishFingerCommandFlag();
 
     return;
 }
@@ -595,15 +717,111 @@ void IHMCInterfaceNode::updatePublishGoHomeCommandFlag() {
     return;
 }
 
+bool IHMCInterfaceNode::getPublishFingerCommandFlag() {
+    return publish_finger_command_;
+}
+
+void IHMCInterfaceNode::updatePublishFingerCommandFlag() {
+    // if any hand message needs to be opened/closed, then finger message needs to be published
+    publish_finger_command_ = open_left_hand_ || close_left_hand_ || open_right_hand_ || close_right_hand_;
+
+    return;
+}
+
 bool IHMCInterfaceNode::getPublishHandCommandFlag() {
     return publish_hand_command_;
 }
 
 void IHMCInterfaceNode::updatePublishHandCommandFlag() {
-    // if any hand message needs to be opened/closed, then hand message needs to be published
-    publish_hand_command_ = open_left_hand_ || close_left_hand_ || open_right_hand_ || close_right_hand_;
+    // if Cartesian goals are being accepted and either left or right goal received, then hand message needs to be published
+    publish_hand_command_ = cartesian_hand_goals_ && (received_left_hand_goal_ || received_right_hand_goal_);
 
     return;
+}
+
+void IHMCInterfaceNode::prepareEmptyPose(dynacore::Vect3& pos, dynacore::Quaternion& quat) {
+    // set position to zero
+    pos.setZero();
+    // set quaternion to identity
+    quat.setIdentity();
+
+    return;
+}
+
+void IHMCInterfaceNode::preparePoseFromTransform(dynacore::Vect3& pos, dynacore::Quaternion& quat,
+                                                 geometry_msgs::TransformStamped tf_msg) {
+    // set position from transform
+    pos << tf_msg.transform.translation.x, tf_msg.transform.translation.y, tf_msg.transform.translation.z;
+    // set quaternion from transform
+    quat.x() = tf_msg.transform.rotation.x;
+    quat.y() = tf_msg.transform.rotation.y;
+    quat.z() = tf_msg.transform.rotation.z;
+    quat.w() = tf_msg.transform.rotation.w;
+
+    return;
+}
+
+bool IHMCInterfaceNode::prepareCartesianHandGoals(dynacore::Vect3& left_pos, dynacore::Quaternion& left_quat,
+                                                  dynacore::Vect3& right_pos, dynacore::Quaternion& right_quat,
+                                                  std::string& frame_id, std::vector<int> controlled_links) {
+    // clear controlled links vector
+    controlled_links.clear();
+
+    // check if left target received
+    if( !received_left_hand_goal_ ) {
+        // no target received
+        prepareEmptyPose(left_pos, left_quat);
+    }
+    else {
+        // set target from transform
+        preparePoseFromTransform(left_pos, left_quat, left_hand_target_);
+    }
+
+    // check if right target received
+    if( !received_right_hand_goal_ ) {
+        // no target received
+        prepareEmptyPose(right_pos, right_quat);
+    }
+    else {
+        // set target from transform
+        preparePoseFromTransform(right_pos, right_quat, right_hand_target_);
+    }
+
+    // set frame id
+    if( !received_left_hand_goal_ && !received_right_hand_goal_ ) {
+        // neither pose set
+        frame_id = std::string("");
+        return false;
+    }
+    else if( received_left_hand_goal_ && !received_right_hand_goal_ ) {
+        // left pose set, right pose not
+        frame_id = std::string(left_hand_target_.header.frame_id);
+        controlled_links.push_back(valkyrie_link::leftPalm);
+        return true;
+    }
+    else if( !received_left_hand_goal_ && received_right_hand_goal_ ) {
+        // right pose set, left pose not
+        frame_id = std::string(right_hand_target_.header.frame_id);
+        controlled_links.push_back(valkyrie_link::rightPalm);
+        return true;
+    }
+    else { // received_left_hand_goal_ && received_right_hand_goal_
+        // make sure frames are the same
+        if( left_hand_target_.header.frame_id.compare(right_hand_target_.header.frame_id) == 0 ) {
+            // frames are the same
+            frame_id = std::string(left_hand_target_.header.frame_id);
+            controlled_links.push_back(valkyrie_link::leftPalm);
+            controlled_links.push_back(valkyrie_link::rightPalm);
+            return true;
+        }
+        else {
+            // frames are not the same; cannot confidently set frame
+            ROS_WARN("[IHMC Interface Node] Received left hand target in frame %s and right hand target in frame %s; cannot send Cartesian hand targets due to ambiguity",
+                      left_hand_target_.header.frame_id.c_str(), right_hand_target_.header.frame_id.c_str());
+            frame_id = std::string("");
+            return false;
+        }
+    }
 }
 
 void IHMCInterfaceNode::prepareConfigurationVector() {
@@ -677,10 +895,17 @@ int main(int argc, char **argv) {
             }
 
             // check if any hands need to be opened/closed
+            if( ihmc_interface_node.getPublishFingerCommandFlag() ) {
+                // ready to publish finger message
+                ROS_INFO("[IHMC Interface Node] Publishing hand finger trajectory message...");
+                ihmc_interface_node.publishHandFingerMessage();
+            }
+
+            // check if any hands need to be moved to target
             if( ihmc_interface_node.getPublishHandCommandFlag() ) {
                 // ready to publish hand message
-                ROS_INFO("[IHMC Interface Node] Publishing hand finger trajectory message...");
-                ihmc_interface_node.publishHandMessage();
+                ROS_INFO("[IHMC Interface Node] Publishing hand trajectory message...");
+                ihmc_interface_node.publishWholeBodyMessageCartesianHandGoals();
             }
         }
         else {

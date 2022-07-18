@@ -32,12 +32,16 @@ namespace IHMCMsgUtils {
         // id of pelvis zup reference frame for data in a packet; default same as trajectory_reference_frame_id
         int data_reference_frame_id_pelviszup;
 
+        // name of refernce frame
+        std::string cartesian_goal_reference_frame_name;
+
         // DEFAULT CONSTRUCTOR; sets all parameters to default values
         IHMCFrameParams() {
             trajectory_reference_frame_id_world = 83766130; // world frame
             data_reference_frame_id_world = 83766130; // 1 indicates same as trajectory_reference_frame_id, but we set explicitly
             trajectory_reference_frame_id_pelviszup = -101; // pelvis zup
             data_reference_frame_id_pelviszup = -101; // 1 indicates same as trajectory_reference_frame_id, but we set explicitly
+            cartesian_goal_reference_frame_name = std::string("world");
         }
     };
 
@@ -214,6 +218,9 @@ namespace IHMCMsgUtils {
         // vector of controlled links
         std::vector<int> controlled_links;
 
+        // boolean used to indicate if hands are controlled in jointspace or Cartesian space
+        bool cartesian_hand_goals;
+
         // parameters for message types involved in whole-body messages
         IHMCArmTrajectoryParams arm_params;
         IHMCFrameParams frame_params;
@@ -230,6 +237,7 @@ namespace IHMCMsgUtils {
         // DEFAULT CONSTRUCTOR; sets all parameters to default values
         IHMCMessageParameters() {
             sequence_id = 1;
+            cartesian_hand_goals = false;
             // all other params already at defaults
         }
 

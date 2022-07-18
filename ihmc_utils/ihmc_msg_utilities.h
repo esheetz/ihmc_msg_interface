@@ -8,6 +8,11 @@
 #include <chrono>
 #include <algorithm>
 #include <vector>
+#include <math.h>
+#include <ros/ros.h>
+#include <tf/tf.h>
+#include <tf/transform_listener.h>
+#include <geometry_msgs/PoseStamped.h>
 
 #include <ihmc_utils/ihmc_msg_params.h>
 
@@ -20,6 +25,7 @@
 #include <controller_msgs/ChestTrajectoryMessage.h>
 #include <controller_msgs/FootTrajectoryMessage.h>
 #include <controller_msgs/FrameInformation.h>
+#include <controller_msgs/HandTrajectoryMessage.h>
 #include <controller_msgs/JointspaceTrajectoryMessage.h>
 #include <controller_msgs/NeckTrajectoryMessage.h>
 #include <controller_msgs/OneDoFJointTrajectoryMessage.h>
@@ -70,11 +76,11 @@ namespace IHMCMsgUtils {
                                         IHMCMessageParameters msg_params);
 
     /*
-     * makes an FootTrajectoryMessage from the given pose
+     * makes a FootTrajectoryMessage from the given pose
      * @param pos, the vector containing the desired position
      * @param quat, the quaternion containing the desired orientation
      * @param foot_msg, the message to be populated
-     * @param robot_side, an integer representing which arm is being controlled
+     * @param robot_side, an integer representing which foot is being controlled
      * @param msg_params, the IHMCMessageParameters struct containing parameters for populating the message
      * @return none
      * @pre robot_side is either 0 (left arm) or 1 (right arm)
@@ -99,6 +105,23 @@ namespace IHMCMsgUtils {
                                          int trajectory_reference_frame_id,
                                          int data_reference_frame_id,
                                          IHMCMessageParameters msg_params);
+
+    /*
+     * makes a HandTrajectoryMessage from the given pose
+     * @param pos, the vector containing the desired position
+     * @param quat, the quaternion containing the desired position
+     * @param hand_msg, the message to be populated
+     * @param robot_side, an integer representing which arm is being controlled
+     * @param msg_params, the IHMCMessageParameters struct containing parameters for populating the message
+     * @return none
+     * @pre robot_side is either 0 (left arm) or 1 (right arm)
+     * @post hand_msg populated based on the given configuration
+     */
+    void makeIHMCHandTrajectoryMessage(dynacore::Vect3 pos,
+                                       dynacore::Quaternion quat,
+                                       controller_msgs::HandTrajectoryMessage& hand_msg,
+                                       int robot_side,
+                                       IHMCMessageParameters msg_params);
 
     /*
      * makes a JointspaceTrajectoryMessage from the given configuration vector
@@ -266,12 +289,21 @@ namespace IHMCMsgUtils {
     /*
      * makes a WholeBodyTrajecoryMessage from the given configuration vector
      * @param q, the vector containing the desired robot configuration
+     * @param left_hand_pos, the vector containing the desired left hand position
+     * @param left_hand_quat, the quaternion containing the desired left hand orientation
+     * @param right_hand_pos, the vector containing the desired right hand position
+     * @param right_hand_quat, the quaternion containing the desired right hand orientation
      * @param wholebody_msg, the message to be populated
      * @param msg_params, the IHMCMessageParameters struct containing parameters for populating the message
      * @return none
      * @post wholebody_msg populated based on the given configuration
      */
     void makeIHMCWholeBodyTrajectoryMessage(dynacore::Vector q,
+                                            controller_msgs::WholeBodyTrajectoryMessage& wholebody_msg,
+                                            IHMCMessageParameters msg_params);
+    void makeIHMCWholeBodyTrajectoryMessage(dynacore::Vector q,
+                                            dynacore::Vect3 left_hand_pos, dynacore::Quaternion left_hand_quat,
+                                            dynacore::Vect3 right_hand_pos, dynacore::Quaternion right_hand_quat,
                                             controller_msgs::WholeBodyTrajectoryMessage& wholebody_msg,
                                             IHMCMessageParameters msg_params);
 
@@ -372,5 +404,33 @@ namespace IHMCMsgUtils {
      * @return bool indicating if link_id is in controlled_links
      */
     bool checkControlledLink(std::vector<int> controlled_links, int link_id);
+
+    /*
+     * applies the fixed hand offset to given hand goals
+     * @param left_hand_pos, the vector containing the desired left hand position
+     * @param left_hand_quat, the quaternion containing the desired left hand orientation
+     * @param right_hand_pos, the vector containing the desired right hand position
+     * @param right_hand_quat, the quaternion containing the desired right hand orientation
+     * @param frame_id, a string representing the frame id for the given hand goals
+     * @return boolean indicating if offset was successfully applied
+     * @post poses updated to reflect hand offset
+     */
+    bool applyHandOffset(dynacore::Vect3& left_hand_pos, dynacore::Quaternion& left_hand_quat,
+                         dynacore::Vect3& right_hand_pos, dynacore::Quaternion& right_hand_quat,
+                         std::string frame_id);
+
+    /*
+     * transforms a pose from one frame to another
+     * @param frame_id_in, a string representing the current frame
+     * @param pos_in, the position in the current frame
+     * @param quat_in, the quaternion in the current frame
+     * @param frame_id_out, a string representing the target frame
+     * @param pos_out, the position in the target frame
+     * @param quat_out, the quaternion in the target frame
+     * @return boolean indicating if pose was successfully transformed
+     * @post pos_out and quat_out updated to reflect transformed pose
+     */
+    bool transformDynacorePose(std::string frame_id_in, dynacore::Vect3 pos_in, dynacore::Quaternion quat_in,
+                               std::string frame_id_out, dynacore::Vect3& pos_out, dynacore::Quaternion& quat_out);
 
 } // end namespace IHMCMsgUtils

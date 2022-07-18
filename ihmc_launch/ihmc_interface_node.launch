@@ -22,6 +22,8 @@
 	<arg if="$(arg controllers)" name="joint_command_topic" value="controllers/output/ihmc/joint_commands"/>
 	<arg if="$(arg controllers)" name="status_topic" value="controllers/output/ihmc/controller_status"/>
 	<arg if="$(arg controllers)" name="controlled_link_topic" value="controllers/output/ihmc/controlled_link_ids"/>
+	<arg if="$(arg controllers)" name="hand_pose_command_topic" value="controllers/output/ihmc/cartesian_hand_targets"/>
+	<arg if="$(arg controllers)" name="receive_cartesian_goals_topic" value="controllers/output/ihmc/receive_cartesian_goals"/>
 
 	<arg name="debug" default="false"/>
 	<arg unless="$(arg debug)" name="launch_prefix" value="" />
@@ -39,6 +41,8 @@
 		<param if="$(arg controllers)" name="managing_node" value="$(arg managing_node)"/>
 		<param if="$(arg controllers)" name="status_topic" value="$(arg status_topic)"/>
 		<param if="$(arg controllers)" name="controlled_link_topic" value="$(arg controlled_link_topic)"/>
+		<param if="$(arg controllers)" name="hand_pose_command_topic" value="$(arg hand_pose_command_topic)"/>
+		<param if="$(arg controllers)" name="receive_cartesian_goals_topic" value="$(arg receive_cartesian_goals_topic)"/>
 		<!--<param name="" type="" value=""/> -->
 	</node>
 </launch>
