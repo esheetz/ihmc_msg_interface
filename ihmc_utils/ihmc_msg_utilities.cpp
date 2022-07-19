@@ -548,7 +548,7 @@ namespace IHMCMsgUtils {
                                             dynacore::Vect3 left_hand_pos, dynacore::Quaternion left_hand_quat,
                                             dynacore::Vect3 right_hand_pos, dynacore::Quaternion right_hand_quat,
                                             controller_msgs::WholeBodyTrajectoryMessage& wholebody_msg,
-                                            IHMCMessageParameters msg_params) {
+                                            IHMCMessageParameters msg_params, tf::Transform tf_hand_goal_frame_wrt_world) {
         // set sequence id
         wholebody_msg.sequence_id = msg_params.sequence_id;
 
@@ -573,13 +573,10 @@ namespace IHMCMsgUtils {
             dynacore::Quaternion offset_left_hand_quat(left_hand_quat);
             dynacore::Vect3 offset_right_hand_pos(right_hand_pos);
             dynacore::Quaternion offset_right_hand_quat(right_hand_quat);
-            bool success = applyHandOffset(offset_left_hand_pos, offset_left_hand_quat,
-                                           offset_right_hand_pos, offset_right_hand_quat,
-                                           msg_params.frame_params.cartesian_goal_reference_frame_name);
-            if( !success ) {
-                std::cout << "***** [IHMCMsgUtilities] Could not apply offset to Cartesian hand targets. Not creating whole-body message." << std::endl;
-                return;
-            }
+            applyHandOffset(offset_left_hand_pos, offset_left_hand_quat,
+                            offset_right_hand_pos, offset_right_hand_quat,
+                            msg_params.frame_params.cartesian_goal_reference_frame_name,
+                            tf_hand_goal_frame_wrt_world);
 
             if( control_larm ) {
                 // construct and set hand message for left hand
@@ -1009,9 +1006,9 @@ namespace IHMCMsgUtils {
         return (it != controlled_links.end());
     }
 
-    bool applyHandOffset(dynacore::Vect3& left_hand_pos, dynacore::Quaternion& left_hand_quat,
+    void applyHandOffset(dynacore::Vect3& left_hand_pos, dynacore::Quaternion& left_hand_quat,
                          dynacore::Vect3& right_hand_pos, dynacore::Quaternion& right_hand_quat,
-                         std::string frame_id) {
+                         std::string frame_id, tf::Transform tf_frameid_wrt_world) {
         // NOTE: dynacore::Transforms are Eigen affine transforms
         //       in a d-dimensional space, affine transforms are (d+1)x(d+1) matrices
         //       where the last row is [0 ... 0 1]
@@ -1031,22 +1028,17 @@ namespace IHMCMsgUtils {
 
         // check target hand pose frame ID and transform into world, if necessary
         bool transformed_targets = false;
-        bool left_success;
-        bool right_success;
         if( frame_id.compare(std::string("world")) != 0 ) {
             // transformation needed, set flag
             transformed_targets = true;
 
             // transform targets into world frame
-            left_success = transformDynacorePose(frame_id, left_hand_pos, left_hand_quat,
-                                                 std::string("world"), left_hand_pos_wrt_world, left_hand_quat_wrt_world);
-            right_success = transformDynacorePose(frame_id, right_hand_pos, right_hand_quat,
-                                                  std::string("world"), right_hand_pos_wrt_world, right_hand_quat_wrt_world);
-
-            // check success of both transforms
-            if( !left_success || !right_success ) {
-                return false;
-            }
+            transformDynacorePose(left_hand_pos, left_hand_quat,
+                                  left_hand_pos_wrt_world, left_hand_quat_wrt_world,
+                                  tf_frameid_wrt_world);
+            transformDynacorePose(right_hand_pos, right_hand_quat,
+                                  right_hand_pos_wrt_world, right_hand_quat_wrt_world,
+                                  tf_frameid_wrt_world);
         }
         else {
             // already in world frame, set targets
@@ -1094,16 +1086,14 @@ namespace IHMCMsgUtils {
 
         // transform back to original frame, if necessary
         if( transformed_targets ) {
+            tf::Transform tf_world_wrt_frameid = tf_frameid_wrt_world.inverse();
             // transform targets into given frame
-            left_success = transformDynacorePose(std::string("world"), offset_left_hand_pos_wrt_world, offset_left_hand_quat_wrt_world,
-                                                 frame_id, left_hand_pos_offset, left_hand_quat_offset);
-            right_success = transformDynacorePose(std::string("world"), offset_right_hand_pos_wrt_world, offset_right_hand_quat_wrt_world,
-                                                  frame_id, right_hand_pos_offset, right_hand_quat_offset);
-
-            // check success of both transforms
-            if( !left_success || !right_success ) {
-                return false;
-            }
+            transformDynacorePose(offset_left_hand_pos_wrt_world, offset_left_hand_quat_wrt_world,
+                                  left_hand_pos_offset, left_hand_quat_offset,
+                                  tf_world_wrt_frameid);
+            transformDynacorePose(offset_right_hand_pos_wrt_world, offset_right_hand_quat_wrt_world,
+                                  right_hand_pos_offset, right_hand_quat_offset,
+                                  tf_world_wrt_frameid);
         }
         else {
             // already in world frame, set targets
@@ -1121,57 +1111,24 @@ namespace IHMCMsgUtils {
         right_hand_pos = right_hand_pos_offset;
         right_hand_quat = right_hand_quat_offset;
         right_hand_quat.normalize();
-        // TODO verify that this is correct; is the offset different if the given pose is in pelvis frame?
 
-        return true;
+        return;
     }
 
-    bool transformDynacorePose(std::string frame_id_in, dynacore::Vect3 pos_in, dynacore::Quaternion quat_in,
-                               std::string frame_id_out, dynacore::Vect3& pos_out, dynacore::Quaternion& quat_out) {
-        // create transform listener
-        tf::TransformListener tf;
+    void transformDynacorePose(dynacore::Vect3 pos_in, dynacore::Quaternion quat_in,
+                               dynacore::Vect3& pos_out, dynacore::Quaternion& quat_out,
+                               tf::Transform tf_input_wrt_output) {
+        // convert from dynacore pose to tf pose
+        tf::Transform tf_wrt_input;
+        dynacore::convert(pos_in, quat_in, tf_wrt_input);
 
-        // CONVERT FROM DYNACORE POSE TO TF POSE
-        // initialize stamped pose
-        ros::Time now = ros::Time::now();
-        geometry_msgs::PoseStamped pose_in_msg;
-        pose_in_msg.pose.position.x = pos_in[0];
-        pose_in_msg.pose.position.y = pos_in[1];
-        pose_in_msg.pose.position.z = pos_in[2];
-        pose_in_msg.pose.orientation.x = quat_in.x();
-        pose_in_msg.pose.orientation.y = quat_in.y();
-        pose_in_msg.pose.orientation.z = quat_in.z();
-        pose_in_msg.pose.orientation.w = quat_in.w();
-        pose_in_msg.header.frame_id = frame_id_in;
-        pose_in_msg.header.stamp = ros::Time::now();
+        // transform pose
+        tf::Transform tf_wrt_output = tf_input_wrt_output * tf_wrt_input;
 
-        // initialize transformed pose
-        geometry_msgs::PoseStamped pose_out_msg;
+        // convert from tf pose to dynacore pose
+        dynacore::convert(tf_wrt_output, pos_out, quat_out);
 
-        // TRANSFORM POSE
-        // try getting transformation
-        try {
-            // wait for most recent transform
-            tf.waitForTransform(frame_id_out, frame_id_in, ros::Time(0), ros::Duration(2.0));
-            // transform pose into target frame
-            tf.transformPose(frame_id_out, pose_in_msg, pose_out_msg);
-        }
-        catch (tf2::TransformException ex) {
-            std::cout << "***** [IHMCMsgUtilities] No transform from " << frame_id_in << " to " << frame_id_out << "." << std::endl;
-            return false;
-        }
-
-        // CONVERT FROM TF POSE TO DYNACORE POSE
-        // set transformed pose
-        pos_out << pose_out_msg.pose.position.x,
-                   pose_out_msg.pose.position.y,
-                   pose_out_msg.pose.position.z;
-        quat_out.x() = pose_out_msg.pose.orientation.x;
-        quat_out.y() = pose_out_msg.pose.orientation.y;
-        quat_out.z() = pose_out_msg.pose.orientation.z;
-        quat_out.w() = pose_out_msg.pose.orientation.w;
-
-        return true;
+        return;
     }
 
 } // end namespace IHMCMsgUtilities

@@ -11,7 +11,6 @@
 #include <math.h>
 #include <ros/ros.h>
 #include <tf/tf.h>
-#include <tf/transform_listener.h>
 #include <geometry_msgs/PoseStamped.h>
 
 #include <ihmc_utils/ihmc_msg_params.h>
@@ -295,6 +294,7 @@ namespace IHMCMsgUtils {
      * @param right_hand_quat, the quaternion containing the desired right hand orientation
      * @param wholebody_msg, the message to be populated
      * @param msg_params, the IHMCMessageParameters struct containing parameters for populating the message
+     * @param tf_hand_goal_frame_wrt_world, the transform of the hand goal frame to world
      * @return none
      * @post wholebody_msg populated based on the given configuration
      */
@@ -305,7 +305,7 @@ namespace IHMCMsgUtils {
                                             dynacore::Vect3 left_hand_pos, dynacore::Quaternion left_hand_quat,
                                             dynacore::Vect3 right_hand_pos, dynacore::Quaternion right_hand_quat,
                                             controller_msgs::WholeBodyTrajectoryMessage& wholebody_msg,
-                                            IHMCMessageParameters msg_params);
+                                            IHMCMessageParameters msg_params, tf::Transform tf_hand_goal_frame_wrt_world);
 
     /*
      * makes a GoHomeMessage for the corresponding humanoid body part
@@ -412,25 +412,26 @@ namespace IHMCMsgUtils {
      * @param right_hand_pos, the vector containing the desired right hand position
      * @param right_hand_quat, the quaternion containing the desired right hand orientation
      * @param frame_id, a string representing the frame id for the given hand goals
-     * @return boolean indicating if offset was successfully applied
+     * @param tf_frameid_wrt_world, the transform from the given frame id to world
+     * @return none
      * @post poses updated to reflect hand offset
      */
-    bool applyHandOffset(dynacore::Vect3& left_hand_pos, dynacore::Quaternion& left_hand_quat,
+    void applyHandOffset(dynacore::Vect3& left_hand_pos, dynacore::Quaternion& left_hand_quat,
                          dynacore::Vect3& right_hand_pos, dynacore::Quaternion& right_hand_quat,
-                         std::string frame_id);
+                         std::string frame_id, tf::Transform tf_frameid_wrt_world);
 
     /*
      * transforms a pose from one frame to another
-     * @param frame_id_in, a string representing the current frame
      * @param pos_in, the position in the current frame
      * @param quat_in, the quaternion in the current frame
-     * @param frame_id_out, a string representing the target frame
      * @param pos_out, the position in the target frame
      * @param quat_out, the quaternion in the target frame
-     * @return boolean indicating if pose was successfully transformed
+     * @param tf_input_wrt_output, the transform from the input(current) frame to the output(target) frame
+     * @return none
      * @post pos_out and quat_out updated to reflect transformed pose
      */
-    bool transformDynacorePose(std::string frame_id_in, dynacore::Vect3 pos_in, dynacore::Quaternion quat_in,
-                               std::string frame_id_out, dynacore::Vect3& pos_out, dynacore::Quaternion& quat_out);
+    void transformDynacorePose(dynacore::Vect3 pos_in, dynacore::Quaternion quat_in,
+                               dynacore::Vect3& pos_out, dynacore::Quaternion& quat_out,
+                               tf::Transform tf_input_wrt_output);
 
 } // end namespace IHMCMsgUtils

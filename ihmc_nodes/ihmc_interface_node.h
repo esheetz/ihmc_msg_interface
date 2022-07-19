@@ -16,6 +16,7 @@
 #include <sensor_msgs/JointState.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <tf/tf.h>
+#include <tf/transform_listener.h>
 #include <ihmc_utils/ihmc_msg_utilities.h>
 
 class IHMCInterfaceNode
@@ -64,7 +65,7 @@ public:
                                   geometry_msgs::TransformStamped tf_msg);
     bool prepareCartesianHandGoals(dynacore::Vect3& left_pos, dynacore::Quaternion& left_quat,
                                    dynacore::Vect3& right_pos, dynacore::Quaternion& right_quat,
-                                   std::string& frame_id, std::vector<int> controlled_links);
+                                   std::string& frame_id, std::vector<int>& controlled_links);
     void prepareConfigurationVector();
 
 private:
@@ -120,6 +121,8 @@ private:
     std::vector<int> controlled_links_; // vector of controlled links
     geometry_msgs::TransformStamped left_hand_target_; // target pose for left hand
     geometry_msgs::TransformStamped right_hand_target_; // target pose for right hand
+
+    tf::TransformListener tf_;
 };
 
 #endif

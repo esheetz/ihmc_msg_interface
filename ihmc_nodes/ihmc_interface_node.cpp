@@ -479,10 +479,27 @@ void IHMCInterfaceNode::publishWholeBodyMessageCartesianHandGoals() {
     msg_params.cartesian_hand_goals = cartesian_hand_goals_;
     msg_params.frame_params.cartesian_goal_reference_frame_name = cartesian_frame_id;
 
+    // get transform from pelvis to world
+    tf::StampedTransform tf_pelvis_wrt_world;
+    ROS_INFO("[IHMC Interface Node] Trying to get transform from pelvis to world...");
+    // try getting transformation
+    try {
+        // wait for most recent transform
+        tf_.waitForTransform("world", "pelvis", ros::Time(0), ros::Duration(2.0));
+        // lookup transform
+        tf_.lookupTransform("world", "pelvis", ros::Time(0), tf_pelvis_wrt_world);
+    }
+    catch (tf2::TransformException ex) {
+        ROS_WARN("[IHMC Interface Node] No transform from pelvis to world.");
+        return;
+    }
+
+    ROS_INFO("[IHMC Interface Node] Got transform from pelvis to world!");
+
     // create whole-body message
     controller_msgs::WholeBodyTrajectoryMessage wholebody_msg;
     IHMCMsgUtils::makeIHMCWholeBodyTrajectoryMessage(q_, left_pos, left_quat, right_pos, right_quat,
-                                                     wholebody_msg, msg_params);
+                                                     wholebody_msg, msg_params, tf_pelvis_wrt_world);
     // configuration vector q_ will not be used
 
     // publish message
@@ -763,7 +780,7 @@ void IHMCInterfaceNode::preparePoseFromTransform(dynacore::Vect3& pos, dynacore:
 
 bool IHMCInterfaceNode::prepareCartesianHandGoals(dynacore::Vect3& left_pos, dynacore::Quaternion& left_quat,
                                                   dynacore::Vect3& right_pos, dynacore::Quaternion& right_quat,
-                                                  std::string& frame_id, std::vector<int> controlled_links) {
+                                                  std::string& frame_id, std::vector<int>& controlled_links) {
     // clear controlled links vector
     controlled_links.clear();
 
