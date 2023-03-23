@@ -15,6 +15,7 @@
 #include <std_msgs/String.h>
 #include <sensor_msgs/JointState.h>
 #include <geometry_msgs/TransformStamped.h>
+#include <moveit_msgs/RobotTrajectory.h>
 #include <tf/tf.h>
 #include <tf/transform_listener.h>
 #include <ihmc_utils/ihmc_msg_utilities.h>
@@ -36,10 +37,13 @@ public:
     void statusCallback(const std_msgs::String& status_msg);
     void handPoseCommandCallback(const geometry_msgs::TransformStamped& tf_msg);
     void receiveCartesianGoalsCallback(const std_msgs::Bool& bool_msg);
+    void plannedMoveItRobotTrajectoryCallback(const moveit_msgs::RobotTrajectory& moveit_msg);
+    void receiveMoveItTrajCallback(const std_msgs::Bool& bool_msg);
 
     // PUBLISH MESSAGE
     void publishWholeBodyMessage();
     void publishWholeBodyMessageCartesianHandGoals();
+    void publishWholeBodyMessageMoveItTrajectory();
     void publishGoHomeMessage();
     void publishHandFingerMessage();
     void publishFingerOpenLeftMessage();
@@ -60,12 +64,15 @@ public:
     void updatePublishFingerCommandFlag();
     bool getPublishHandCommandFlag();
     void updatePublishHandCommandFlag();
+    bool getPublishMoveItTrajectoryFlag();
+    void updatePublishMoveItTrajectoryFlag();
     void prepareEmptyPose(dynacore::Vect3& pos, dynacore::Quaternion& quat);
     void preparePoseFromTransform(dynacore::Vect3& pos, dynacore::Quaternion& quat,
                                   geometry_msgs::TransformStamped tf_msg);
     bool prepareCartesianHandGoals(dynacore::Vect3& left_pos, dynacore::Quaternion& left_quat,
                                    dynacore::Vect3& right_pos, dynacore::Quaternion& right_quat,
                                    std::string& frame_id, std::vector<int>& controlled_links);
+    void prepareControlledLinksFromMoveItTraj(std::vector<int>& controlled_links);
     void prepareConfigurationVector();
 
 private:
@@ -79,10 +86,14 @@ private:
     ros::Subscriber joint_command_sub_; // subscriber for listening for joint commands
     std::string hand_pose_command_topic_; // topic to subscribe to for listening to Cartesian hand goals
     ros::Subscriber hand_pose_command_sub_; // subscriber for listening for Cartesian hand goals
+    std::string moveit_traj_topic_; // topic to subscribe to for listening to MoveIt trajectories
+    ros::Subscriber moveit_traj_sub_; // subscriber for listening for MoveIt trajectories
     std::string status_topic_; // topic to subscribe to for listening to statuses
-    ros::Subscriber status_sub_; // subscriber for listening to statuses
+    ros::Subscriber status_sub_; // subscriber for listening for statuses
     std::string receive_cartesian_goals_topic_; // topic to subscribe to for listening to Cartesian goal updates
-    ros::Subscriber receive_cartesian_goals_sub_; // subscriber for listening to Cartesian goal updates
+    ros::Subscriber receive_cartesian_goals_sub_; // subscriber for listening for Cartesian goal updates
+    std::string receive_moveit_traj_topic_; // topic to subscribe to for listening to MoveIt trajectories
+    ros::Subscriber receive_moveit_traj_sub_; // subscriber for listening for MoveIt trajectories
     std::string status_; // string indicating current status
 
     ros::Publisher wholebody_pub_; // publisher for wholebody messages
@@ -99,6 +110,8 @@ private:
     bool received_joint_command_; // flag indicating whether joint command has been received
     bool received_left_hand_goal_; // flag indicating whether Cartesian left hand goal has been received
     bool received_right_hand_goal_; // flag indicating whether Cartesian right hand goal has been received
+    bool receive_moveit_traj_; // flag indicating whether to accept MoveIt trajectories
+    bool received_moveit_traj_; // flag indicating whether MoveIt trajectory has been received
     bool publish_commands_; // flag indicating if joint and pelvis information has been received and whole body message can be published
     bool stop_node_; // flag indicating when to publish whole body messages
 
@@ -115,12 +128,15 @@ private:
     bool publish_finger_command_; // flag indicating if any finger messages need to be published
     bool publish_hand_command_; // flag indicating if any hand messages need to be published
 
+    bool publish_moveit_traj_; // flag indicating if MoveIt trajectory needs to be published
+
     dynacore::Vector q_joint_; // vector of commanded joint positions
     tf::Transform tf_pelvis_wrt_world_; // transform of pelvis in world frame
     dynacore::Vector q_; // full configuration vector, including virtual joints
     std::vector<int> controlled_links_; // vector of controlled links
     geometry_msgs::TransformStamped left_hand_target_; // target pose for left hand
     geometry_msgs::TransformStamped right_hand_target_; // target pose for right hand
+    moveit_msgs::RobotTrajectory moveit_robot_traj_; // planned MoveIt robot trajectory
 
     tf::TransformListener tf_;
 };

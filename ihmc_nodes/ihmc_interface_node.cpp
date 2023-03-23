@@ -26,6 +26,10 @@ IHMCInterfaceNode::IHMCInterfaceNode(const ros::NodeHandle& nh) {
               std::string("controllers/output/ihmc/cartesian_hand_targets"));
     nh_.param("receive_cartesian_goals_topic", receive_cartesian_goals_topic_,
               std::string("controllers/output/ihmc/receive_cartesian_goals"));
+    nh_.param("moveit_traj_topic", moveit_traj_topic_,
+              std::string("moveit_planned_robot_trajectory"));
+    nh_.param("receive_moveit_traj_topic", receive_moveit_traj_topic_,
+              std::string("receive_moveit_trajectories"));
 
     // if coming from controllers, update topic names to come from managing node
     if( commands_from_controllers_ ) {
@@ -35,6 +39,8 @@ IHMCInterfaceNode::IHMCInterfaceNode(const ros::NodeHandle& nh) {
         status_topic_ = managing_node + status_topic_;
         hand_pose_command_topic_ = managing_node + hand_pose_command_topic_;
         receive_cartesian_goals_topic_ = managing_node + receive_cartesian_goals_topic_;
+        moveit_traj_topic_ = managing_node + moveit_traj_topic_;
+        receive_moveit_traj_topic_ = managing_node + receive_moveit_traj_topic_;
     }
 
     initializeConnections();
@@ -66,6 +72,8 @@ IHMCInterfaceNode::IHMCInterfaceNode(const ros::NodeHandle& nh) {
     received_joint_command_ = false;
     received_left_hand_goal_ = false;
     received_right_hand_goal_ = false;
+    receive_moveit_traj_ = false;
+    received_moveit_traj_ = false;
     publish_commands_ = false;
     stop_node_ = false;
 
@@ -81,6 +89,8 @@ IHMCInterfaceNode::IHMCInterfaceNode(const ros::NodeHandle& nh) {
     close_right_hand_ = false;
     publish_finger_command_ = false;
     publish_hand_command_ = false;
+
+    publish_moveit_traj_ = false;
 
     // set initial empty status
     status_ = std::string("");
@@ -102,6 +112,8 @@ bool IHMCInterfaceNode::initializeConnections() {
         status_sub_ = nh_.subscribe(status_topic_, 20, &IHMCInterfaceNode::statusCallback, this);
         hand_pose_command_sub_ = nh_.subscribe(hand_pose_command_topic_, 1, &IHMCInterfaceNode::handPoseCommandCallback, this);
         receive_cartesian_goals_sub_ = nh_.subscribe(receive_cartesian_goals_topic_, 1, &IHMCInterfaceNode::receiveCartesianGoalsCallback, this);
+        moveit_traj_sub_ = nh_.subscribe(moveit_traj_topic_, 1, &IHMCInterfaceNode::plannedMoveItRobotTrajectoryCallback, this);
+        receive_moveit_traj_sub_ = nh_.subscribe(receive_moveit_traj_topic_, 1, &IHMCInterfaceNode::receiveMoveItTrajCallback, this);
     }
 
     // publishers for sending whole-body messages
@@ -423,6 +435,54 @@ void IHMCInterfaceNode::receiveCartesianGoalsCallback(const std_msgs::Bool& bool
     return;
 }
 
+void IHMCInterfaceNode::plannedMoveItRobotTrajectoryCallback(const moveit_msgs::RobotTrajectory& moveit_msg) {
+    if( receive_moveit_traj_ ) {
+        // store MoveIt trajectory
+        moveit_robot_traj_ = moveit_msg;
+        // set flag indicating trajectory has been received
+        received_moveit_traj_ = true;
+    }
+
+    // update flag to publish trajectory
+    updatePublishMoveItTrajectoryFlag();
+
+    return;
+}
+
+void IHMCInterfaceNode::receiveMoveItTrajCallback(const std_msgs::Bool& bool_msg) {
+    // update receive MoveIt trajectories flag based on message
+    receive_moveit_traj_ = bool_msg.data;
+
+    // status of MoveIt trajectories has changed; reset targets
+    moveit_msgs::RobotTrajectory empty_robot_traj_msg;
+    moveit_robot_traj_ = empty_robot_traj_msg;
+
+    // update flags
+    if( receive_moveit_traj_ ) {
+        // prepare to receive MoveIt trajectory
+        received_moveit_traj_ = false;
+
+        // update flag to publish MoveIt trajectory
+        // TODO
+
+        ROS_INFO("[IHMC Interface Node] Accepting MoveIt trajectories");
+    }
+    else {
+        // not receiving MoveIt trajectories
+        received_moveit_traj_ = false;
+
+        // update flag to publish MoveIt trajectory
+        // TODO
+
+        // update flag to stop node (not necessary, but just to be sure)
+        updateStopNodeFlag();
+
+        ROS_INFO("[IHMC Interface Node] Not accepting MoveIt trajectories");
+    }
+
+    return;
+}
+
 // PUBLISH MESSAGE
 void IHMCInterfaceNode::publishWholeBodyMessage() {
     // prepare configuration vector based on received pelvis transform and joint command
@@ -511,6 +571,34 @@ void IHMCInterfaceNode::publishWholeBodyMessageCartesianHandGoals() {
 
     // update flag to publish hand message
     updatePublishHandCommandFlag();
+
+    return;
+}
+
+void IHMCInterfaceNode::publishWholeBodyMessageMoveItTrajectory() {
+    // initialize controlled links
+    std::vector<int> controlled_links;
+
+    // prepare controlled links based on received MoveIt trajectory
+    prepareControlledLinksFromMoveItTraj(controlled_links);
+
+    // initialize struct of default IHMC message parameters
+    IHMCMsgUtils::IHMCMessageParameters msg_params;
+    // set controlled links
+    msg_params.controlled_links = controlled_links;
+
+    // create whole-body message
+    controller_msgs::WholeBodyTrajectoryMessage wholebody_msg;
+    IHMCMsgUtils::makeIHMCWholeBodyTrajectoryMessage(moveit_robot_traj_, wholebody_msg, msg_params);
+
+    // publish message
+    wholebody_pub_.publish(wholebody_msg);
+
+    // reset flags since received targets have been processed
+    received_moveit_traj_ = false;
+
+    // update flag to publish MoveIt trajectory
+    updatePublishMoveItTrajectoryFlag();
 
     return;
 }
@@ -756,6 +844,17 @@ void IHMCInterfaceNode::updatePublishHandCommandFlag() {
     return;
 }
 
+bool IHMCInterfaceNode::getPublishMoveItTrajectoryFlag() {
+    return publish_moveit_traj_;
+}
+
+void IHMCInterfaceNode::updatePublishMoveItTrajectoryFlag() {
+    // if MoveIt trajectories are being accepted and MoveIt trajectory received, then MoveIt trajectory needs to be published
+    publish_moveit_traj_ = receive_moveit_traj_ && received_moveit_traj_;
+
+    return;
+}
+
 void IHMCInterfaceNode::prepareEmptyPose(dynacore::Vect3& pos, dynacore::Quaternion& quat) {
     // set position to zero
     pos.setZero();
@@ -841,6 +940,13 @@ bool IHMCInterfaceNode::prepareCartesianHandGoals(dynacore::Vect3& left_pos, dyn
     }
 }
 
+void IHMCInterfaceNode::prepareControlledLinksFromMoveItTraj(std::vector<int>& controlled_links) {
+    // get controlled links from the stored MoveIt trajectory
+    IHMCMsgUtils::getControlledLinksFromMoveItMsg(moveit_robot_traj_, controlled_links);
+
+    return;
+}
+
 void IHMCInterfaceNode::prepareConfigurationVector() {
     // pelvis transform and joint command received, so prepare configuration vector
     // resize configuration vector
@@ -923,6 +1029,13 @@ int main(int argc, char **argv) {
                 // ready to publish hand message
                 ROS_INFO("[IHMC Interface Node] Publishing hand trajectory message...");
                 ihmc_interface_node.publishWholeBodyMessageCartesianHandGoals();
+            }
+
+            // check if MoveIt trajectory needs to be published
+            if( ihmc_interface_node.getPublishMoveItTrajectoryFlag() ) {
+                // ready to publish MoveIt trajectory
+                ROS_INFO("[IHMC Interface Node] Preparing and executing MoveIt trajectory as IHMC whole-body message...");
+                ihmc_interface_node.publishWholeBodyMessageMoveItTrajectory();
             }
         }
         else {

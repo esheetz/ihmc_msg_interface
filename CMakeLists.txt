@@ -2,7 +2,7 @@
 # Dependencies on ROS and IHMC controller_msgs
 #---------------------------------------------------------------------------
 cmake_minimum_required(VERSION 3.1)
-project(IHMCMsgInterface)
+project(ihmc_msg_interface)
 
 set(INSTALL_LIB_DIR ${CMAKE_INSTALL_PREFIX}/lib)
 
@@ -15,6 +15,8 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   sensor_msgs
   std_msgs
+  trajectory_msgs
+  moveit_msgs
   controller_msgs
   val_dynacore
 )
@@ -23,7 +25,7 @@ find_package(catkin REQUIRED COMPONENTS
 #     catkin Setup
 #------------------------------------------------------------------------
 catkin_package(
-  CATKIN_DEPENDS roscpp tf geometry_msgs sensor_msgs std_msgs controller_msgs val_dynacore
+  CATKIN_DEPENDS roscpp tf geometry_msgs sensor_msgs std_msgs trajectory_msgs moveit_msgs controller_msgs val_dynacore
 )
 include_directories(${catkin_INCLUDE_DIRS})
 
