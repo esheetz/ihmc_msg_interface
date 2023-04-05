@@ -39,8 +39,9 @@ IHMCInterfaceNode::IHMCInterfaceNode(const ros::NodeHandle& nh) {
         status_topic_ = managing_node + status_topic_;
         hand_pose_command_topic_ = managing_node + hand_pose_command_topic_;
         receive_cartesian_goals_topic_ = managing_node + receive_cartesian_goals_topic_;
-        moveit_traj_topic_ = managing_node + moveit_traj_topic_;
-        receive_moveit_traj_topic_ = managing_node + receive_moveit_traj_topic_;
+        // we know MoveIt trajectory information will always come from the MoveIt Planner Executor Server
+        moveit_traj_topic_ = "/ValkyrieMoveItPlannerExecutorServerNode/" + moveit_traj_topic_;
+        receive_moveit_traj_topic_ = "/ValkyrieMoveItPlannerExecutorServerNode/" + receive_moveit_traj_topic_;
     }
 
     initializeConnections();
