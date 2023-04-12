@@ -54,6 +54,7 @@ namespace IHMCMsgUtils {
      * makes an ArmTrajectoryMessage from the given configuration vector
      * @param q_joints, the vector containing the desired configuration for the relevant joints
      * @param joint_traj, the vector of vectors containing the desired joint trajectory for the relevant joints
+     * @param joint_vels, the vector of vectors containing the desired joint velocities for the relevant joints
      * @param joint_traj_times, the vector containing the desired joint trajectory waypoint times
      * @param arm_msg, the message to be populated
      * @param robot_side, an integer representing which arm is being controlled
@@ -67,6 +68,7 @@ namespace IHMCMsgUtils {
                                       int robot_side,
                                       IHMCMessageParameters msg_params);
     void makeIHMCArmTrajectoryMessage(std::vector<dynacore::Vector> joint_traj,
+                                      std::vector<dynacore::Vector> joint_vels,
                                       std::vector<double> joint_traj_times,
                                       controller_msgs::ArmTrajectoryMessage& arm_msg,
                                       int robot_side,
@@ -143,6 +145,7 @@ namespace IHMCMsgUtils {
      * @param q_joints, the vector containing the desired configuration for the relevant joints
      * @param q_joints_vector, the vector containing the desired configuration for the relevant joints
      * @param joint_traj, the vector of vectors containing the desired joint trajectory for the relevant joints
+     * @param joint_vels, the vector of vectors containing the desired joint velocities for the relevant joints
      * @param joint_traj_times, the vector containing the desired joint trajectory waypoint times
      * @param js_msg, the message to be populated
      * @param msg_params, the IHMCMessageParameters struct containing parameters for populating the message
@@ -156,6 +159,7 @@ namespace IHMCMsgUtils {
                                              controller_msgs::JointspaceTrajectoryMessage& js_msg,
                                              IHMCMessageParameters msg_params);
     void makeIHMCJointspaceTrajectoryMessage(std::vector<dynacore::Vector> joint_traj,
+                                             std::vector<dynacore::Vector> joint_vels,
                                              std::vector<double> joint_traj_times,
                                              controller_msgs::JointspaceTrajectoryMessage& js_msg,
                                              IHMCMessageParameters msg_params);
@@ -177,6 +181,7 @@ namespace IHMCMsgUtils {
      * @param q_joint, the desired position of the joint
      * @param dof_idx, the index of the degree of freedom in the joint trajectory
      * @param joint_traj, the vector of vectors containing the desired joint trajectory for the relevant joints
+     * @param joint_vels, the vector of vectors containing the desired joint velocities for the relevant joints
      * @param joint_traj_times, the vector containing the desired joint trajectory waypoint times
      * @param j_msg, the message to be populated
      * @param msg_params, the IHMCMessageParameters struct containing parameters for populating the message
@@ -188,6 +193,7 @@ namespace IHMCMsgUtils {
                                               IHMCMessageParameters msg_params);
     void makeIHMCOneDoFJointTrajectoryMessage(int dof_idx,
                                               std::vector<dynacore::Vector> joint_traj,
+                                              std::vector<dynacore::Vector> joint_vels,
                                               std::vector<double> joint_traj_times,
                                               controller_msgs::OneDoFJointTrajectoryMessage& j_msg,
                                               IHMCMessageParameters msg_params);
@@ -294,6 +300,7 @@ namespace IHMCMsgUtils {
      * makes a SpineTrajectoryMessage from the given configuration vector
      * @param q_joints, the vector containing the desired configuration for the relevant joints
      * @param joint_traj, the vector of vectors containing the desired joint trajectory for the relevant joints
+     * @param joint_vels, the vector of vectors containing the desired joint velocities for the relevant joints
      * @param joint_traj_times, the vector containing the desired joint trajectory waypoint times
      * @param spine_msg, the message to be populated
      * @param msg_params, the IHMCMessageParameters struct containing parameters for populating the message
@@ -304,6 +311,7 @@ namespace IHMCMsgUtils {
                                         controller_msgs::SpineTrajectoryMessage& spine_msg,
                                         IHMCMessageParameters msg_params);
     void makeIHMCSpineTrajectoryMessage(std::vector<dynacore::Vector> joint_traj,
+                                        std::vector<dynacore::Vector> joint_vels,
                                         std::vector<double> joint_traj_times,
                                         controller_msgs::SpineTrajectoryMessage& spine_msg,
                                         IHMCMessageParameters msg_params);
@@ -311,12 +319,16 @@ namespace IHMCMsgUtils {
     /*
      * makes a TrajectoryPoint1DMessage from the given joint position value
      * @param q_joint, the desired position of the joint
+     * @param q_vel, the desired velocity of the joint
      * @param point_msg, the message to be populated
      * @param msg_params, the IHMCMessageParameters struct containing parameters for populating the message
      * @return none
      * @post point_msg populated based on the given joint position
      */
     void makeIHMCTrajectoryPoint1DMessage(double q_joint,
+                                          controller_msgs::TrajectoryPoint1DMessage& point_msg,
+                                          IHMCMessageParameters msg_params);
+    void makeIHMCTrajectoryPoint1DMessage(double q_joint, double q_vel,
                                           controller_msgs::TrajectoryPoint1DMessage& point_msg,
                                           IHMCMessageParameters msg_params);
 
@@ -418,14 +430,17 @@ namespace IHMCMsgUtils {
      * @param joint_point_msg, the joint trajectory point message containing the desired joint positions
      * @param joint_indices, the vector containing the relevant joint indices
      * @param joint_waypoint, a reference to the vector (joint trajectory waypoint) that will be updated
+     * @param joint_velocity, a reference to the vector (joint trajectory velocity) that will be updated
      * @param waypoint_time, a reference to the double (waypoint time) that will be updated
      * @return none
      * @post joint_waypoint updated to contain the desired joint positions of the relevant joints
+     * @post joint_velocity updated to contain the desired joint velocities of the relevant joints
      * @post waypoint_time updated to contain the time the waypoint should be achieved
      */
     void selectRelevantJointTrajectoryWaypoint(trajectory_msgs::JointTrajectoryPoint joint_point_msg,
                                                std::vector<int> joint_indices,
                                                dynacore::Vector& joint_waypoint,
+                                               dynacore::Vector& joint_velocity,
                                                double& waypoint_time);
 
     /*
@@ -433,16 +448,21 @@ namespace IHMCMsgUtils {
      * @param joint_traj_msg, the joint trajectory message containing the desired joint trajectory
      * @param joint_indices, the vector containing the relevant joint indices
      * @param joint_traj, a reference to the vector of vectors (joint trajectory waypoints) that will be updated
+     * @param joint_vels, a reference to the vector of vectors (joint trajectory velocities) that will be updated
      * @param joint_traj_times, a reference to the vector (waypoint times) that will be updated
      * @return none
      * @post joint_traj updated to contain the desired joint trajectory of the relevant joints
      *       NOTE: each element of joint_traj is a waypoint in the trajectory represented as a dynacore::Vector;
      *             each element represents the positions for the relevant joints at that waypoint
+     * @post joint_vels updated to contain the desired joint velocities of the relevant joints
+     *       NOTE: each element of joint_vels is a waypoint in the trajectory represented as a dynacore::Vector;
+     *             each element represents the velocities for the relevant joints at that waypoint
      * @post joint_traj_times updated to contain the times each trajectory waypoint should be achieved
      */
     void selectRelevantJointsTrajectory(trajectory_msgs::JointTrajectory joint_traj_msg,
                                         std::vector<int> joint_indices,
                                         std::vector<dynacore::Vector>& joint_traj,
+                                        std::vector<dynacore::Vector>& joint_vels,
                                         std::vector<double>& joint_traj_times);
 
     /*

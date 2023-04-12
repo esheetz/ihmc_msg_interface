@@ -29,6 +29,7 @@ namespace IHMCMsgUtils {
     }
 
     void makeIHMCArmTrajectoryMessage(std::vector<dynacore::Vector> joint_traj,
+                                      std::vector<dynacore::Vector> joint_vels,
                                       std::vector<double> joint_traj_times,
                                       controller_msgs::ArmTrajectoryMessage& arm_msg,
                                       int robot_side,
@@ -39,7 +40,7 @@ namespace IHMCMsgUtils {
         arm_msg.force_execution = msg_params.arm_params.force_execution;
 
         // construct and set JointspaceTrajectoryMessage for arm
-        makeIHMCJointspaceTrajectoryMessage(joint_traj, joint_traj_times, arm_msg.jointspace_trajectory, msg_params);
+        makeIHMCJointspaceTrajectoryMessage(joint_traj, joint_vels, joint_traj_times, arm_msg.jointspace_trajectory, msg_params);
 
         return;
     }
@@ -189,6 +190,7 @@ namespace IHMCMsgUtils {
     }
 
     void makeIHMCJointspaceTrajectoryMessage(std::vector<dynacore::Vector> joint_traj,
+                                             std::vector<dynacore::Vector> joint_vels,
                                              std::vector<double> joint_traj_times,
                                              controller_msgs::JointspaceTrajectoryMessage& js_msg,
                                              IHMCMessageParameters msg_params) {
@@ -208,7 +210,7 @@ namespace IHMCMsgUtils {
         for( int i = 0 ; i < num_joints ; i++ ) {
             // construct OneDoFJointTrajectoryMessage for joint
             controller_msgs::OneDoFJointTrajectoryMessage j_msg;
-            makeIHMCOneDoFJointTrajectoryMessage(i, joint_traj, joint_traj_times, j_msg, msg_params);
+            makeIHMCOneDoFJointTrajectoryMessage(i, joint_traj, joint_vels, joint_traj_times, j_msg, msg_params);
 
             // add OneDoFJointTrajectoryMessage to vector
             js_msg.joint_trajectory_messages.push_back(j_msg);
@@ -251,6 +253,7 @@ namespace IHMCMsgUtils {
 
     void makeIHMCOneDoFJointTrajectoryMessage(int dof_idx,
                                               std::vector<dynacore::Vector> joint_traj,
+                                              std::vector<dynacore::Vector> joint_vels,
                                               std::vector<double> joint_traj_times,
                                               controller_msgs::OneDoFJointTrajectoryMessage& j_msg,
                                               IHMCMessageParameters msg_params) {
@@ -265,14 +268,18 @@ namespace IHMCMsgUtils {
         for( int i = 0 ; i < joint_traj.size() ; i++ ) {
             // set trajectory point time based on waypoint time
             msg_params.traj_point_params.time = joint_traj_times[i];
-            // NOTE: this is only a local change to the msg_params struct
+            // set sequence id to be consecutively increasing
+            msg_params.sequence_id++;
+            // NOTE: these are only local changes to the msg_params struct
 
             // get waypoint
             dynacore::Vector traj_waypoint = joint_traj[i];
+            // get velocity
+            dynacore::Vector traj_velocity = joint_vels[i];
 
             // construct TrajectoryPoint1DMessage
             controller_msgs::TrajectoryPoint1DMessage point_msg;
-            makeIHMCTrajectoryPoint1DMessage(traj_waypoint[dof_idx], point_msg, msg_params);
+            makeIHMCTrajectoryPoint1DMessage(traj_waypoint[dof_idx], traj_velocity[dof_idx], point_msg, msg_params);
 
             // add TrajectoryPoint1DMessage to vector
             j_msg.trajectory_points.push_back(point_msg);
@@ -524,14 +531,15 @@ namespace IHMCMsgUtils {
     }
 
     void makeIHMCSpineTrajectoryMessage(std::vector<dynacore::Vector> joint_traj,
-                                    std::vector<double> joint_traj_times,
-                                    controller_msgs::SpineTrajectoryMessage& spine_msg,
-                                    IHMCMessageParameters msg_params) {
+                                        std::vector<dynacore::Vector> joint_vels,
+                                        std::vector<double> joint_traj_times,
+                                        controller_msgs::SpineTrajectoryMessage& spine_msg,
+                                        IHMCMessageParameters msg_params) {
         // set sequence id
         spine_msg.sequence_id = msg_params.sequence_id;
 
         // construct and set JointspaceTrajectoryMessage for spine
-        makeIHMCJointspaceTrajectoryMessage(joint_traj, joint_traj_times, spine_msg.jointspace_trajectory, msg_params);
+        makeIHMCJointspaceTrajectoryMessage(joint_traj, joint_vels, joint_traj_times, spine_msg.jointspace_trajectory, msg_params);
 
         return;
     }
@@ -548,6 +556,22 @@ namespace IHMCMsgUtils {
 
         // set desired velocity to 0
         point_msg.velocity = 0.0;
+
+        return;
+    }
+
+    void makeIHMCTrajectoryPoint1DMessage(double q_joint, double q_vel,
+                                          controller_msgs::TrajectoryPoint1DMessage& point_msg,
+                                          IHMCMessageParameters msg_params) {
+        // set sequence id and time
+        point_msg.sequence_id = msg_params.sequence_id;
+        point_msg.time = msg_params.traj_point_params.time;
+
+        // set desired position based on input
+        point_msg.position = q_joint;
+
+        // set desired velocity based on input
+        point_msg.velocity = q_vel;
 
         return;
     }
@@ -901,13 +925,15 @@ namespace IHMCMsgUtils {
                                                     larm_joint_indices);
             // get relevant trajectory for left arm
             std::vector<dynacore::Vector> larm_joint_traj;
+            std::vector<dynacore::Vector> larm_joint_vels;
             std::vector<double> larm_joint_traj_times;
             selectRelevantJointsTrajectory(moveit_robot_traj_msg.joint_trajectory,
                                            larm_joint_indices,
                                            larm_joint_traj,
+                                           larm_joint_vels,
                                            larm_joint_traj_times);
             // construct and set arm message for left arm
-            makeIHMCArmTrajectoryMessage(larm_joint_traj, larm_joint_traj_times,
+            makeIHMCArmTrajectoryMessage(larm_joint_traj, larm_joint_vels, larm_joint_traj_times,
                                          wholebody_msg.left_arm_trajectory_message,
                                          0, msg_params);
         }
@@ -919,13 +945,15 @@ namespace IHMCMsgUtils {
                                                      rarm_joint_indices);
             // get relevant trajectory for right arm
             std::vector<dynacore::Vector> rarm_joint_traj;
+            std::vector<dynacore::Vector> rarm_joint_vels;
             std::vector<double> rarm_joint_traj_times;
             selectRelevantJointsTrajectory(moveit_robot_traj_msg.joint_trajectory,
                                            rarm_joint_indices,
                                            rarm_joint_traj,
+                                           rarm_joint_vels,
                                            rarm_joint_traj_times);
             // construct and set arm message for right arm
-            makeIHMCArmTrajectoryMessage(rarm_joint_traj, rarm_joint_traj_times,
+            makeIHMCArmTrajectoryMessage(rarm_joint_traj, rarm_joint_vels, rarm_joint_traj_times,
                                          wholebody_msg.right_arm_trajectory_message,
                                          1, msg_params);
         }
@@ -954,18 +982,21 @@ namespace IHMCMsgUtils {
         if( control_chest ) {
             // get relevant joint indices for spine
             std::vector<int> torso_joint_indices;
-            getRelevantMoveItMsgJointIndicesTorso(torso_joint_indices);
+            getRelevantMoveItMsgJointIndicesTorso(moveit_robot_traj_msg.joint_trajectory.joint_names,
+                                                  torso_joint_indices);
             // get relevant trajectory for spine
             std::vector<dynacore::Vector> spine_joint_traj;
+            std::vector<dynacore::Vector> spine_joint_vels;
             std::vector<double> spine_joint_traj_times;
             selectRelevantJointsTrajectory(moveit_robot_traj_msg.joint_trajectory,
                                            torso_joint_indices,
                                            spine_joint_traj,
+                                           spine_joint_vels,
                                            spine_joint_traj_times);
             // construct and set spine message
-            makeIHMCSpineTrajectoryMessage(spine_joint_traj, spine_joint_traj_times,
+            makeIHMCSpineTrajectoryMessage(spine_joint_traj, spine_joint_vels, spine_joint_traj_times,
                                            wholebody_msg.spine_trajectory_message,
-                                           mst_params);
+                                           msg_params);
         }
         */
 
@@ -1100,17 +1131,23 @@ namespace IHMCMsgUtils {
     void selectRelevantJointTrajectoryWaypoint(trajectory_msgs::JointTrajectoryPoint joint_point_msg,
                                                std::vector<int> joint_indices,
                                                dynacore::Vector& joint_waypoint,
+                                               dynacore::Vector& joint_velocity,
                                                double& waypoint_time) {
         // resize and clear relevant joint configuration vector
         joint_waypoint.resize(joint_indices.size());
         joint_waypoint.setZero();
 
-        // get relevant joint positions
+        // resize and clear relevant joint velocity vector
+        joint_velocity.resize(joint_indices.size());
+        joint_velocity.setZero();
+
+        // get relevant joint positions and velocities
         for( int i = 0 ; i < joint_indices.size() ; i++ ) {
             // set joint position based on given trajectory point
             joint_waypoint[i] = joint_point_msg.positions[joint_indices[i]];
-            // IMPORTANT NOTE: JointTrajectoryPoint will have velocities and accelerations set
-            // TODO set velocities for IHMC as well?
+            joint_velocity[i] = joint_point_msg.velocities[joint_indices[i]];
+            // IMPORTANT NOTE: JointTrajectoryPoint will have accelerations set,
+            //                 but IHMC messages only have fields for positions and velocities
         }
 
         // set joint waypoint time (convert from ros::Duration to double)
@@ -1122,10 +1159,15 @@ namespace IHMCMsgUtils {
     void selectRelevantJointsTrajectory(trajectory_msgs::JointTrajectory joint_traj_msg,
                                         std::vector<int> joint_indices,
                                         std::vector<dynacore::Vector>& joint_traj,
+                                        std::vector<dynacore::Vector>& joint_vels,
                                         std::vector<double>& joint_traj_times) {
         // clear and resize trajectory vector
         joint_traj.clear();
         joint_traj.resize(joint_traj_msg.points.size());
+
+        // clear and resize velocities vector
+        joint_vels.clear();
+        joint_vels.resize(joint_traj_msg.points.size());
 
         // clear and resize waypoint times vector
         joint_traj_times.clear();
@@ -1137,6 +1179,7 @@ namespace IHMCMsgUtils {
             selectRelevantJointTrajectoryWaypoint(joint_traj_msg.points[i],
                                                   joint_indices,
                                                   joint_traj[i],
+                                                  joint_vels[i],
                                                   joint_traj_times[i]);
         }
 
