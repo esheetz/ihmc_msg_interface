@@ -269,7 +269,11 @@ namespace IHMCMsgUtils {
             // set trajectory point time based on waypoint time
             msg_params.traj_point_params.time = joint_traj_times[i];
             // set sequence id to be consecutively increasing
-            msg_params.sequence_id++;
+            if( i != 0 ) {
+                // only update when not the first trajectory point in the sequence
+                // first trajectory point will have same sequence id as message
+                msg_params.sequence_id++;
+            }
             // NOTE: these are only local changes to the msg_params struct
 
             // get waypoint
@@ -1143,9 +1147,20 @@ namespace IHMCMsgUtils {
 
         // get relevant joint positions and velocities
         for( int i = 0 ; i < joint_indices.size() ; i++ ) {
-            // set joint position based on given trajectory point
-            joint_waypoint[i] = joint_point_msg.positions[joint_indices[i]];
-            joint_velocity[i] = joint_point_msg.velocities[joint_indices[i]];
+            // check for special index -1 for left and right wrists
+            if( joint_indices[i] == -1 ) {
+                // special index -1 indicates that joint is not included in valkyrie definition,
+                // but is needed in the wholebody message
+                // set joint position and velocity to 0
+                joint_waypoint[i] = 0.0;
+                joint_velocity[i] = 0.0;
+            }
+            else {
+                // joint exists in valkyrie definiition
+                // set joint position based on given trajectory point
+                joint_waypoint[i] = joint_point_msg.positions[joint_indices[i]];
+                joint_velocity[i] = joint_point_msg.velocities[joint_indices[i]];
+            }
             // IMPORTANT NOTE: JointTrajectoryPoint will have accelerations set,
             //                 but IHMC messages only have fields for positions and velocities
         }
@@ -1391,20 +1406,27 @@ namespace IHMCMsgUtils {
 
         // look through val_def joints
         for( int i = 0 ; i < val_def_joint_indices.size() ; i++ ) {
-            // get corresponding joint name
-            std::string joint_name = val::joint_indices_to_names[val_def_joint_indices[i]];
-
-            // find joint name in MoveIt message
-            std::vector<std::string>::iterator it;
-            it = std::find(moveit_msg_joint_names.begin(), moveit_msg_joint_names.end(), joint_name);
-            if( it != moveit_msg_joint_names.end() ) {
-                // add index of joint name in MoveIt message
-                joint_indices.push_back(it - moveit_msg_joint_names.begin());
+            // check for special index -1 for left and right wrists
+            if( val_def_joint_indices[i] == -1 ) {
+                // add special -1 joint index for MoveIt
+                joint_indices.push_back(-1);
             }
-            /*
-             * NOTE: based on how joint groups are set up in val_moveit_config, we can safely assume that all
-             * joints will be found in the joint names vector; therefore, we do not check for this condition
-             */
+            else {
+                // get corresponding joint name
+                std::string joint_name = val::joint_indices_to_names[val_def_joint_indices[i]];
+
+                // find joint name in MoveIt message
+                std::vector<std::string>::iterator it;
+                it = std::find(moveit_msg_joint_names.begin(), moveit_msg_joint_names.end(), joint_name);
+                if( it != moveit_msg_joint_names.end() ) {
+                    // add index of joint name in MoveIt message
+                    joint_indices.push_back(it - moveit_msg_joint_names.begin());
+                }
+                /*
+                 * NOTE: based on how joint groups are set up in val_moveit_config, we can safely assume that all
+                 * joints will be found in the joint names vector; therefore, we do not check for this condition
+                 */
+            }
         }
 
         return;
