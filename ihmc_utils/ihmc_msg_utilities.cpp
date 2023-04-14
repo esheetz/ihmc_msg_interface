@@ -28,6 +28,23 @@ namespace IHMCMsgUtils {
         return;
     }
 
+    void makeIHMCArmTrajectoryMessage(std::vector<dynacore::Vector> joint_traj,
+                                      std::vector<dynacore::Vector> joint_vels,
+                                      std::vector<double> joint_traj_times,
+                                      controller_msgs::ArmTrajectoryMessage& arm_msg,
+                                      int robot_side,
+                                      IHMCMessageParameters msg_params) {
+        // set sequence id, robot side, and force execution
+        arm_msg.sequence_id = msg_params.sequence_id;
+        arm_msg.robot_side = robot_side;
+        arm_msg.force_execution = msg_params.arm_params.force_execution;
+
+        // construct and set JointspaceTrajectoryMessage for arm
+        makeIHMCJointspaceTrajectoryMessage(joint_traj, joint_vels, joint_traj_times, arm_msg.jointspace_trajectory, msg_params);
+
+        return;
+    }
+
     void makeIHMCChestTrajectoryMessage(dynacore::Quaternion quat,
                                         controller_msgs::ChestTrajectoryMessage& chest_msg,
                                         IHMCMessageParameters msg_params) {
@@ -36,6 +53,23 @@ namespace IHMCMsgUtils {
 
         // construct and set SO3TrajectoryMessage for chest
         makeIHMCSO3TrajectoryMessage(quat,
+                                     chest_msg.so3_trajectory,
+                                     msg_params.frame_params.trajectory_reference_frame_id_pelviszup,
+                                     msg_params.frame_params.data_reference_frame_id_world,
+                                     msg_params);
+
+        return;
+    }
+
+    void makeIHMCChestTrajectoryMessage(std::vector<dynacore::Quaternion> chest_traj,
+                                        std::vector<double> chest_traj_times,
+                                        controller_msgs::ChestTrajectoryMessage& chest_msg,
+                                        IHMCMessageParameters msg_params) {
+        // set sequence id
+        chest_msg.sequence_id = msg_params.sequence_id;
+
+        // construct and set SO3TrajectoryMessage for chest
+        makeIHMCSO3TrajectoryMessage(chest_traj, chest_traj_times,
                                      chest_msg.so3_trajectory,
                                      msg_params.frame_params.trajectory_reference_frame_id_pelviszup,
                                      msg_params.frame_params.data_reference_frame_id_world,
@@ -155,6 +189,36 @@ namespace IHMCMsgUtils {
         return;
     }
 
+    void makeIHMCJointspaceTrajectoryMessage(std::vector<dynacore::Vector> joint_traj,
+                                             std::vector<dynacore::Vector> joint_vels,
+                                             std::vector<double> joint_traj_times,
+                                             controller_msgs::JointspaceTrajectoryMessage& js_msg,
+                                             IHMCMessageParameters msg_params) {
+        // set sequence id
+        js_msg.sequence_id = msg_params.sequence_id;
+
+        // construct and set queueing properties message
+        makeIHMCQueueableMessage(js_msg.queueing_properties, msg_params);
+
+        // clear vector of joint trajectory messages
+        js_msg.joint_trajectory_messages.clear();
+
+        // get number of joints
+        int num_joints = joint_traj[0].size();
+
+        // set trajectory for each joint
+        for( int i = 0 ; i < num_joints ; i++ ) {
+            // construct OneDoFJointTrajectoryMessage for joint
+            controller_msgs::OneDoFJointTrajectoryMessage j_msg;
+            makeIHMCOneDoFJointTrajectoryMessage(i, joint_traj, joint_vels, joint_traj_times, j_msg, msg_params);
+
+            // add OneDoFJointTrajectoryMessage to vector
+            js_msg.joint_trajectory_messages.push_back(j_msg);
+        }
+
+        return;
+    }
+
     void makeIHMCNeckTrajectoryMessage(dynacore::Vector q_joints,
                                        controller_msgs::NeckTrajectoryMessage& neck_msg,
                                        IHMCMessageParameters msg_params) {
@@ -183,6 +247,47 @@ namespace IHMCMsgUtils {
 
         // add TrajectoryPoint1DMessage to vector
         j_msg.trajectory_points.push_back(point_msg);
+
+        return;
+    }
+
+    void makeIHMCOneDoFJointTrajectoryMessage(int dof_idx,
+                                              std::vector<dynacore::Vector> joint_traj,
+                                              std::vector<dynacore::Vector> joint_vels,
+                                              std::vector<double> joint_traj_times,
+                                              controller_msgs::OneDoFJointTrajectoryMessage& j_msg,
+                                              IHMCMessageParameters msg_params) {
+        // set sequence id and weight
+        j_msg.sequence_id = msg_params.sequence_id;
+        j_msg.weight = msg_params.onedof_joint_params.weight;
+
+        // clear vector of trajectory points
+        j_msg.trajectory_points.clear();
+
+        // construct position for each waypoint
+        for( int i = 0 ; i < joint_traj.size() ; i++ ) {
+            // set trajectory point time based on waypoint time
+            msg_params.traj_point_params.time = joint_traj_times[i];
+            // set sequence id to be consecutively increasing
+            if( i != 0 ) {
+                // only update when not the first trajectory point in the sequence
+                // first trajectory point will have same sequence id as message
+                msg_params.sequence_id++;
+            }
+            // NOTE: these are only local changes to the msg_params struct
+
+            // get waypoint
+            dynacore::Vector traj_waypoint = joint_traj[i];
+            // get velocity
+            dynacore::Vector traj_velocity = joint_vels[i];
+
+            // construct TrajectoryPoint1DMessage
+            controller_msgs::TrajectoryPoint1DMessage point_msg;
+            makeIHMCTrajectoryPoint1DMessage(traj_waypoint[dof_idx], traj_velocity[dof_idx], point_msg, msg_params);
+
+            // add TrajectoryPoint1DMessage to vector
+            j_msg.trajectory_points.push_back(point_msg);
+        }
 
         return;
     }
@@ -350,6 +455,57 @@ namespace IHMCMsgUtils {
         return;
     }
 
+    void makeIHMCSO3TrajectoryMessage(std::vector<dynacore::Quaternion> chest_traj,
+                                      std::vector<double> chest_traj_times,
+                                      controller_msgs::SO3TrajectoryMessage& so3_msg,
+                                      int trajectory_reference_frame_id,
+                                      int data_reference_frame_id,
+                                      IHMCMessageParameters msg_params) {
+        // set sequence id and custom control frame flag
+        so3_msg.sequence_id = msg_params.sequence_id;
+        so3_msg.use_custom_control_frame = msg_params.se3so3_params.use_custom_control_frame;
+
+        // construct and set custom control frame pose (setting pose to all zeros)
+        ROSMsgUtils::makeZeroPoseMessage(so3_msg.control_frame_pose);
+
+        // construct and set queueing properties message
+        makeIHMCQueueableMessage(so3_msg.queueing_properties, msg_params);
+
+        // construct and set frame information
+        makeIHMCFrameInformationMessage(so3_msg.frame_information,
+                                        trajectory_reference_frame_id,
+                                        data_reference_frame_id,
+                                        msg_params);
+
+        // construct and set selection matrix
+        makeIHMCSelectionMatrix3DMessage(so3_msg.selection_matrix, msg_params);
+
+        // construct and set weight matrix
+        makeIHMCWeightMatrix3DMessage(so3_msg.weight_matrix, msg_params);
+
+        // clear vector of trajectory points
+        so3_msg.taskspace_trajectory_points.clear();
+
+        // construct orientation for each waypoint
+        for( int i = 0 ; i < chest_traj.size() ; i++ ) {
+            // set trajectory point time based on waypoint time
+            msg_params.traj_point_params.time = chest_traj_times[i];
+            // NOTE: this is only a locla change to the msg_params struct
+
+            // get waypoint
+            dynacore::Quaternion traj_waypoint = chest_traj[i];
+
+            // construct SO3TrajectoryPointMessage
+            controller_msgs::SO3TrajectoryPointMessage so3_point_msg;
+            makeIHMCSO3TrajectoryPointMessage(traj_waypoint, so3_point_msg, msg_params);
+
+            // add SO3TrajectoryPointMessage to vector
+            so3_msg.taskspace_trajectory_points.push_back(so3_point_msg);
+        }
+
+        return;
+    }
+
     void makeIHMCSO3TrajectoryPointMessage(dynacore::Quaternion quat,
                                            controller_msgs::SO3TrajectoryPointMessage& so3_point_msg,
                                            IHMCMessageParameters msg_params) {
@@ -378,6 +534,20 @@ namespace IHMCMsgUtils {
         return;
     }
 
+    void makeIHMCSpineTrajectoryMessage(std::vector<dynacore::Vector> joint_traj,
+                                        std::vector<dynacore::Vector> joint_vels,
+                                        std::vector<double> joint_traj_times,
+                                        controller_msgs::SpineTrajectoryMessage& spine_msg,
+                                        IHMCMessageParameters msg_params) {
+        // set sequence id
+        spine_msg.sequence_id = msg_params.sequence_id;
+
+        // construct and set JointspaceTrajectoryMessage for spine
+        makeIHMCJointspaceTrajectoryMessage(joint_traj, joint_vels, joint_traj_times, spine_msg.jointspace_trajectory, msg_params);
+
+        return;
+    }
+
     void makeIHMCTrajectoryPoint1DMessage(double q_joint,
                                           controller_msgs::TrajectoryPoint1DMessage& point_msg,
                                           IHMCMessageParameters msg_params) {
@@ -390,6 +560,22 @@ namespace IHMCMsgUtils {
 
         // set desired velocity to 0
         point_msg.velocity = 0.0;
+
+        return;
+    }
+
+    void makeIHMCTrajectoryPoint1DMessage(double q_joint, double q_vel,
+                                          controller_msgs::TrajectoryPoint1DMessage& point_msg,
+                                          IHMCMessageParameters msg_params) {
+        // set sequence id and time
+        point_msg.sequence_id = msg_params.sequence_id;
+        point_msg.time = msg_params.traj_point_params.time;
+
+        // set desired position based on input
+        point_msg.position = q_joint;
+
+        // set desired velocity based on input
+        point_msg.velocity = q_vel;
 
         return;
     }
@@ -433,7 +619,7 @@ namespace IHMCMsgUtils {
         if( control_larm ) {
             // get relevant joint indices for left arm
             std::vector<int> larm_joint_indices;
-            getRelevantJointIndicesLeftArm(larm_joint_indices);
+            getRelevantValDefJointIndicesLeftArm(larm_joint_indices);
             // get relevant configuration values for left arm
             dynacore::Vector q_larm;
             selectRelevantJointsConfiguration(q, larm_joint_indices, q_larm);
@@ -446,7 +632,7 @@ namespace IHMCMsgUtils {
         if( control_rarm ) {
             // get relevant joint indices for right arm
             std::vector<int> rarm_joint_indices;
-            getRelevantJointIndicesRightArm(rarm_joint_indices);
+            getRelevantValDefJointIndicesRightArm(rarm_joint_indices);
             // get relevant configuration values for right arm
             dynacore::Vector q_rarm;
             selectRelevantJointsConfiguration(q, rarm_joint_indices, q_rarm);
@@ -475,7 +661,7 @@ namespace IHMCMsgUtils {
         if( control_chest ) {
             // get relevant joint indices for spine
             std::vector<int> torso_joint_indices;
-            getRelevantJointIndicesTorso(torso_joint_indices);
+            getRelevantValDefJointIndicesTorso(torso_joint_indices);
             // get relevant configuration values for spine
             dynacore::Vector q_spine;
             selectRelevantJointsConfiguration(q, torso_joint_indices, q_spine);
@@ -488,7 +674,7 @@ namespace IHMCMsgUtils {
         if( control_pelvis ) {
             // get relevant joint indices for pelvis
             std::vector<int> pelvis_joint_indices;
-            getRelevantJointIndicesPelvis(pelvis_joint_indices);
+            getRelevantValDefJointIndicesPelvis(pelvis_joint_indices);
             // get relevant configuration values for pelvis
             dynacore::Vector q_pelvis;
             selectRelevantJointsConfiguration(q, pelvis_joint_indices, q_pelvis);
@@ -530,7 +716,7 @@ namespace IHMCMsgUtils {
         if( control_neck ) {
             // get relevant joint indices for neck
             std::vector<int> neck_joint_indices;
-            getRelevantJointIndicesNeck(neck_joint_indices);
+            getRelevantValDefJointIndicesNeck(neck_joint_indices);
             // get relevant configuration values for neck
             dynacore::Vector q_neck;
             selectRelevantJointsConfiguration(q, neck_joint_indices, q_neck);
@@ -597,7 +783,7 @@ namespace IHMCMsgUtils {
             if( control_larm ) {
                 // get relevant joint indices for left arm
                 std::vector<int> larm_joint_indices;
-                getRelevantJointIndicesLeftArm(larm_joint_indices);
+                getRelevantValDefJointIndicesLeftArm(larm_joint_indices);
                 // get relevant configuration values for left arm
                 dynacore::Vector q_larm;
                 selectRelevantJointsConfiguration(q, larm_joint_indices, q_larm);
@@ -610,7 +796,7 @@ namespace IHMCMsgUtils {
             if( control_rarm ) {
                 // get relevant joint indices for right arm
                 std::vector<int> rarm_joint_indices;
-                getRelevantJointIndicesRightArm(rarm_joint_indices);
+                getRelevantValDefJointIndicesRightArm(rarm_joint_indices);
                 // get relevant configuration values for right arm
                 dynacore::Vector q_rarm;
                 selectRelevantJointsConfiguration(q, rarm_joint_indices, q_rarm);
@@ -640,7 +826,7 @@ namespace IHMCMsgUtils {
         if( control_chest ) {
             // get relevant joint indices for spine
             std::vector<int> torso_joint_indices;
-            getRelevantJointIndicesTorso(torso_joint_indices);
+            getRelevantValDefJointIndicesTorso(torso_joint_indices);
             // get relevant configuration values for spine
             dynacore::Vector q_spine;
             selectRelevantJointsConfiguration(q, torso_joint_indices, q_spine);
@@ -653,7 +839,7 @@ namespace IHMCMsgUtils {
         if( control_pelvis ) {
             // get relevant joint indices for pelvis
             std::vector<int> pelvis_joint_indices;
-            getRelevantJointIndicesPelvis(pelvis_joint_indices);
+            getRelevantValDefJointIndicesPelvis(pelvis_joint_indices);
             // get relevant configuration values for pelvis
             dynacore::Vector q_pelvis;
             selectRelevantJointsConfiguration(q, pelvis_joint_indices, q_pelvis);
@@ -695,7 +881,7 @@ namespace IHMCMsgUtils {
         if( control_neck ) {
             // get relevant joint indices for neck
             std::vector<int> neck_joint_indices;
-            getRelevantJointIndicesNeck(neck_joint_indices);
+            getRelevantValDefJointIndicesNeck(neck_joint_indices);
             // get relevant configuration values for neck
             dynacore::Vector q_neck;
             selectRelevantJointsConfiguration(q, neck_joint_indices, q_neck);
@@ -705,6 +891,118 @@ namespace IHMCMsgUtils {
 
         // HEAD TRAJECTORY
         // do not set trajectory for head: wholebody_msg.head_trajectory_message
+
+        return;
+    }
+
+    void makeIHMCWholeBodyTrajectoryMessage(moveit_msgs::RobotTrajectory moveit_robot_traj_msg,
+                                            controller_msgs::WholeBodyTrajectoryMessage& wholebody_msg,
+                                            IHMCMessageParameters msg_params) {
+        // set sequence id
+        wholebody_msg.sequence_id = msg_params.sequence_id;
+
+        // check what links given configuration is controlling
+        // we will not set whole-body message information for not controlled links
+        bool control_chest = checkControlledLink(msg_params.controlled_links, valkyrie_link::torso);
+        bool control_rarm = checkControlledLink(msg_params.controlled_links, valkyrie_link::rightPalm);
+        bool control_larm = checkControlledLink(msg_params.controlled_links, valkyrie_link::leftPalm);
+        // NOTE: when creating WholeBodyTrajectory messages from MoveIt RobotTrajectory messages, only allow
+        //       control of torso and arms; this is based on joint groups defined in SRDF in val_moveit_config
+        // not used by MoveIt:
+        // bool control_pelvis = checkControlledLink(msg_params.controlled_links, valkyrie_link::pelvis);
+        // bool control_rfoot = checkControlledLink(msg_params.controlled_links, valkyrie_link::rightCOP_Frame);
+        // bool control_lfoot = checkControlledLink(msg_params.controlled_links, valkyrie_link::leftCOP_Frame);
+        // bool control_neck = checkControlledLink(msg_params.controlled_links, valkyrie_link::head);
+        // not used:
+        // bool control_rfoot = checkControlledLink(msg_params.controlled_links, valkyrie_link::rightFoot);
+        // bool control_lfoot = checkControlledLink(msg_params.controlled_links, valkyrie_link::leftFoot);
+
+        // HAND TRAJECTORIES (not needed)
+        // do not set trajectory for left hand: wholebody_msg.left_hand_trajectory_message
+        // do not set trajectory for right hand: wholebody_msg.right_hand_trajectory_message
+
+        // ARM TRAJECTORIES
+        if( control_larm ) {
+            // get relevant joint indices for left arm
+            std::vector<int> larm_joint_indices;
+            getRelevantMoveItMsgJointIndicesLeftArm(moveit_robot_traj_msg.joint_trajectory.joint_names,
+                                                    larm_joint_indices);
+            // get relevant trajectory for left arm
+            std::vector<dynacore::Vector> larm_joint_traj;
+            std::vector<dynacore::Vector> larm_joint_vels;
+            std::vector<double> larm_joint_traj_times;
+            selectRelevantJointsTrajectory(moveit_robot_traj_msg.joint_trajectory,
+                                           larm_joint_indices,
+                                           larm_joint_traj,
+                                           larm_joint_vels,
+                                           larm_joint_traj_times);
+            // construct and set arm message for left arm
+            makeIHMCArmTrajectoryMessage(larm_joint_traj, larm_joint_vels, larm_joint_traj_times,
+                                         wholebody_msg.left_arm_trajectory_message,
+                                         0, msg_params);
+        }
+
+        if( control_rarm ) {
+            // get relevant joint indices for right arm
+            std::vector<int> rarm_joint_indices;
+            getRelevantMoveItMsgJointIndicesRightArm(moveit_robot_traj_msg.joint_trajectory.joint_names,
+                                                     rarm_joint_indices);
+            // get relevant trajectory for right arm
+            std::vector<dynacore::Vector> rarm_joint_traj;
+            std::vector<dynacore::Vector> rarm_joint_vels;
+            std::vector<double> rarm_joint_traj_times;
+            selectRelevantJointsTrajectory(moveit_robot_traj_msg.joint_trajectory,
+                                           rarm_joint_indices,
+                                           rarm_joint_traj,
+                                           rarm_joint_vels,
+                                           rarm_joint_traj_times);
+            // construct and set arm message for right arm
+            makeIHMCArmTrajectoryMessage(rarm_joint_traj, rarm_joint_vels, rarm_joint_traj_times,
+                                         wholebody_msg.right_arm_trajectory_message,
+                                         1, msg_params);
+        }
+
+        // CHEST TRAJECTORY
+        if( control_chest ) {
+            // get trajectory of chest orientations
+            std::vector<dynacore::Quaternion> chest_traj;
+            std::vector<double> chest_traj_times;
+            getChestOrientationTrajectory(moveit_robot_traj_msg.joint_trajectory,
+                                          chest_traj,
+                                          chest_traj_times);
+            // construct and set chest message
+            makeIHMCChestTrajectoryMessage(chest_traj, chest_traj_times,
+                                           wholebody_msg.chest_trajectory_message,
+                                           msg_params);
+        }
+
+        // SPINE TRAJECTORY
+        /*
+         * NOTE: spine trajectories work well in sim, but not on real robot;
+         * the code below has been tested in sim and works,
+         * but is commented out since it is unreliable in practice
+         */
+        /*
+        if( control_chest ) {
+            // get relevant joint indices for spine
+            std::vector<int> torso_joint_indices;
+            getRelevantMoveItMsgJointIndicesTorso(moveit_robot_traj_msg.joint_trajectory.joint_names,
+                                                  torso_joint_indices);
+            // get relevant trajectory for spine
+            std::vector<dynacore::Vector> spine_joint_traj;
+            std::vector<dynacore::Vector> spine_joint_vels;
+            std::vector<double> spine_joint_traj_times;
+            selectRelevantJointsTrajectory(moveit_robot_traj_msg.joint_trajectory,
+                                           torso_joint_indices,
+                                           spine_joint_traj,
+                                           spine_joint_vels,
+                                           spine_joint_traj_times);
+            // construct and set spine message
+            makeIHMCSpineTrajectoryMessage(spine_joint_traj, spine_joint_vels, spine_joint_traj_times,
+                                           wholebody_msg.spine_trajectory_message,
+                                           msg_params);
+        }
+        */
 
         return;
     }
@@ -834,7 +1132,76 @@ namespace IHMCMsgUtils {
         return;
     }
 
-    void getRelevantJointIndicesPelvis(std::vector<int>& joint_indices) {
+    void selectRelevantJointTrajectoryWaypoint(trajectory_msgs::JointTrajectoryPoint joint_point_msg,
+                                               std::vector<int> joint_indices,
+                                               dynacore::Vector& joint_waypoint,
+                                               dynacore::Vector& joint_velocity,
+                                               double& waypoint_time) {
+        // resize and clear relevant joint configuration vector
+        joint_waypoint.resize(joint_indices.size());
+        joint_waypoint.setZero();
+
+        // resize and clear relevant joint velocity vector
+        joint_velocity.resize(joint_indices.size());
+        joint_velocity.setZero();
+
+        // get relevant joint positions and velocities
+        for( int i = 0 ; i < joint_indices.size() ; i++ ) {
+            // check for special index -1 for left and right wrists
+            if( joint_indices[i] == -1 ) {
+                // special index -1 indicates that joint is not included in valkyrie definition,
+                // but is needed in the wholebody message
+                // set joint position and velocity to 0
+                joint_waypoint[i] = 0.0;
+                joint_velocity[i] = 0.0;
+            }
+            else {
+                // joint exists in valkyrie definiition
+                // set joint position based on given trajectory point
+                joint_waypoint[i] = joint_point_msg.positions[joint_indices[i]];
+                joint_velocity[i] = joint_point_msg.velocities[joint_indices[i]];
+            }
+            // IMPORTANT NOTE: JointTrajectoryPoint will have accelerations set,
+            //                 but IHMC messages only have fields for positions and velocities
+        }
+
+        // set joint waypoint time (convert from ros::Duration to double)
+        waypoint_time = joint_point_msg.time_from_start.toSec();
+
+        return;
+    }
+
+    void selectRelevantJointsTrajectory(trajectory_msgs::JointTrajectory joint_traj_msg,
+                                        std::vector<int> joint_indices,
+                                        std::vector<dynacore::Vector>& joint_traj,
+                                        std::vector<dynacore::Vector>& joint_vels,
+                                        std::vector<double>& joint_traj_times) {
+        // clear and resize trajectory vector
+        joint_traj.clear();
+        joint_traj.resize(joint_traj_msg.points.size());
+
+        // clear and resize velocities vector
+        joint_vels.clear();
+        joint_vels.resize(joint_traj_msg.points.size());
+
+        // clear and resize waypoint times vector
+        joint_traj_times.clear();
+        joint_traj_times.resize(joint_traj_msg.points.size());
+
+        // get relevant trajectory waypoints and times
+        for( int i = 0 ; i < joint_traj_msg.points.size() ; i++ ) {
+            // set each trajectory waypoint
+            selectRelevantJointTrajectoryWaypoint(joint_traj_msg.points[i],
+                                                  joint_indices,
+                                                  joint_traj[i],
+                                                  joint_vels[i],
+                                                  joint_traj_times[i]);
+        }
+
+        return;
+    }
+
+    void getRelevantValDefJointIndicesPelvis(std::vector<int>& joint_indices) {
         // clear joint index vector
         joint_indices.clear();
 
@@ -850,7 +1217,7 @@ namespace IHMCMsgUtils {
         return;
     }
 
-    void getRelevantJointIndicesLeftLeg(std::vector<int>& joint_indices) {
+    void getRelevantValDefJointIndicesLeftLeg(std::vector<int>& joint_indices) {
         // clear joint index vector
         joint_indices.clear();
 
@@ -865,7 +1232,7 @@ namespace IHMCMsgUtils {
         return;
     }
 
-    void getRelevantJointIndicesRightLeg(std::vector<int>& joint_indices) {
+    void getRelevantValDefJointIndicesRightLeg(std::vector<int>& joint_indices) {
         // clear joint index vector
         joint_indices.clear();
 
@@ -880,7 +1247,7 @@ namespace IHMCMsgUtils {
         return;
     }
 
-    void getRelevantJointIndicesTorso(std::vector<int>& joint_indices) {
+    void getRelevantValDefJointIndicesTorso(std::vector<int>& joint_indices) {
         // clear joint index vector
         joint_indices.clear();
 
@@ -892,7 +1259,7 @@ namespace IHMCMsgUtils {
         return;
     }
 
-    void getRelevantJointIndicesLeftArm(std::vector<int>& joint_indices) {
+    void getRelevantValDefJointIndicesLeftArm(std::vector<int>& joint_indices) {
         // clear joint index vector
         joint_indices.clear();
 
@@ -910,7 +1277,7 @@ namespace IHMCMsgUtils {
         return;
     }
 
-    void getRelevantJointIndicesNeck(std::vector<int>& joint_indices) {
+    void getRelevantValDefJointIndicesNeck(std::vector<int>& joint_indices) {
         // clear joint index vector
         joint_indices.clear();
 
@@ -922,8 +1289,8 @@ namespace IHMCMsgUtils {
         return;
     }
 
-    void getRelevantJointIndicesRightArm(std::vector<int>& joint_indices) {
-    // clear joint index vector
+    void getRelevantValDefJointIndicesRightArm(std::vector<int>& joint_indices) {
+        // clear joint index vector
         joint_indices.clear();
 
         // push back joints for right arm [shoulderPitch, shoulderRoll, shoulderYaw, elbowPitch, forearmYaw]
@@ -940,20 +1307,127 @@ namespace IHMCMsgUtils {
         return;
     }
 
-    void getChestOrientation(dynacore::Vector q, dynacore::Quaternion& chest_quat) {
-        // construct robot model
-        std::shared_ptr<Valkyrie_Model> robot_model(new Valkyrie_Model);
+    void getRelevantMoveItMsgJointIndicesPelvis(std::vector<std::string> moveit_msg_joint_names, std::vector<int>& joint_indices) {
+        // get relevant joint indices for pelvis
+        std::vector<int> val_def_joint_indices;
+        getRelevantValDefJointIndicesPelvis(val_def_joint_indices);
 
-        // initialize zero velocity vector
-        dynacore::Vector qdot;
-        qdot.resize(valkyrie::num_qdot);
-        qdot.setZero();
+        // get MoveIt message joint indices
+        getRelevantMoveItMsgJointIndices(moveit_msg_joint_names,
+                                         val_def_joint_indices,
+                                         joint_indices);
 
-        // update system to reflect joint configuration
-        robot_model->UpdateSystem(q, qdot);
+        return;
+    }
 
-        // get orientation of chest based on joint configuration
-        robot_model->getOri(valkyrie_link::torso, chest_quat);
+    void getRelevantMoveItMsgJointIndicesLeftLeg(std::vector<std::string> moveit_msg_joint_names, std::vector<int>& joint_indices) {
+        // get relevant joint indices for left leg
+        std::vector<int> val_def_joint_indices;
+        getRelevantValDefJointIndicesLeftLeg(val_def_joint_indices);
+
+        // get MoveIt message joint indices
+        getRelevantMoveItMsgJointIndices(moveit_msg_joint_names,
+                                         val_def_joint_indices,
+                                         joint_indices);
+
+        return;
+    }
+
+    void getRelevantMoveItMsgJointIndicesRightLeg(std::vector<std::string> moveit_msg_joint_names, std::vector<int>& joint_indices) {
+        // get relevant joint indices for right leg
+        std::vector<int> val_def_joint_indices;
+        getRelevantValDefJointIndicesRightLeg(val_def_joint_indices);
+
+        // get MoveIt message joint indices
+        getRelevantMoveItMsgJointIndices(moveit_msg_joint_names,
+                                         val_def_joint_indices,
+                                         joint_indices);
+
+        return;
+    }
+
+    void getRelevantMoveItMsgJointIndicesTorso(std::vector<std::string> moveit_msg_joint_names, std::vector<int>& joint_indices) {
+        // get relevant joint indices for torso
+        std::vector<int> val_def_joint_indices;
+        getRelevantValDefJointIndicesTorso(val_def_joint_indices);
+
+        // get MoveIt message joint indices
+        getRelevantMoveItMsgJointIndices(moveit_msg_joint_names,
+                                         val_def_joint_indices,
+                                         joint_indices);
+
+        return;
+    }
+
+    void getRelevantMoveItMsgJointIndicesLeftArm(std::vector<std::string> moveit_msg_joint_names, std::vector<int>& joint_indices) {
+        // get relevant joint indices for left arm
+        std::vector<int> val_def_joint_indices;
+        getRelevantValDefJointIndicesLeftArm(val_def_joint_indices);
+
+        // get MoveIt message joint indices
+        getRelevantMoveItMsgJointIndices(moveit_msg_joint_names,
+                                         val_def_joint_indices,
+                                         joint_indices);
+
+        return;
+    }
+
+    void getRelevantMoveItMsgJointIndicesNeck(std::vector<std::string> moveit_msg_joint_names, std::vector<int>& joint_indices) {
+        // get relevant joint indices for neck
+        std::vector<int> val_def_joint_indices;
+        getRelevantValDefJointIndicesNeck(val_def_joint_indices);
+
+        // get MoveIt message joint indices
+        getRelevantMoveItMsgJointIndices(moveit_msg_joint_names,
+                                         val_def_joint_indices,
+                                         joint_indices);
+
+        return;
+    }
+
+    void getRelevantMoveItMsgJointIndicesRightArm(std::vector<std::string> moveit_msg_joint_names, std::vector<int>& joint_indices) {
+        // get relevant joint indices for right arm
+        std::vector<int> val_def_joint_indices;
+        getRelevantValDefJointIndicesRightArm(val_def_joint_indices);
+
+        // get MoveIt message joint indices
+        getRelevantMoveItMsgJointIndices(moveit_msg_joint_names,
+                                         val_def_joint_indices,
+                                         joint_indices);
+
+        return;
+    }
+
+    void getRelevantMoveItMsgJointIndices(std::vector<std::string> moveit_msg_joint_names,
+                                          std::vector<int> val_def_joint_indices,
+                                          std::vector<int>& joint_indices) {
+        // clear joint index vector
+        joint_indices.clear();
+
+        // look through val_def joints
+        for( int i = 0 ; i < val_def_joint_indices.size() ; i++ ) {
+            // check for special index -1 for left and right wrists
+            if( val_def_joint_indices[i] == -1 ) {
+                // add special -1 joint index for MoveIt
+                joint_indices.push_back(-1);
+            }
+            else {
+                // get corresponding joint name
+                std::string joint_name = val::joint_indices_to_names[val_def_joint_indices[i]];
+
+                // find joint name in MoveIt message
+                std::vector<std::string>::iterator it;
+                it = std::find(moveit_msg_joint_names.begin(), moveit_msg_joint_names.end(), joint_name);
+                if( it != moveit_msg_joint_names.end() ) {
+                    // add index of joint name in MoveIt message
+                    joint_indices.push_back(it - moveit_msg_joint_names.begin());
+                }
+                /*
+                 * NOTE: based on how joint groups are set up in val_moveit_config, we can safely assume that all
+                 * joints will be found in the joint names vector; therefore, we do not check for this condition
+                 */
+            }
+        }
 
         return;
     }
@@ -998,12 +1472,291 @@ namespace IHMCMsgUtils {
         return;
     }
 
+    void getChestOrientation(dynacore::Vector q, dynacore::Quaternion& chest_quat) {
+        // construct robot model
+        std::shared_ptr<Valkyrie_Model> robot_model(new Valkyrie_Model);
+
+        // initialize zero velocity vector
+        dynacore::Vector qdot;
+        qdot.resize(valkyrie::num_qdot);
+        qdot.setZero();
+
+        // update system to reflect joint configuration
+        robot_model->UpdateSystem(q, qdot);
+
+        // get orientation of chest based on joint configuration
+        robot_model->getOri(valkyrie_link::torso, chest_quat);
+
+        return;
+    }
+
+    void getChestOrientation(std::vector<std::string> moveit_msg_joint_names,
+                             trajectory_msgs::JointTrajectoryPoint joint_point_msg,
+                             dynacore::Quaternion& chest_quat,
+                             double& waypoint_time) {
+        // initialize full configuration vector
+        dynacore::Vector q;
+        q.resize(valkyrie::num_q);
+        q.setZero();
+        // note that joints not controlled by joint trajectory message will be 0
+
+        // loop through joints in joint trajectory message
+        for( int i = 0 ; i < moveit_msg_joint_names.size() ; i++ ) {
+            // get joint name
+            std::string joint_name = moveit_msg_joint_names[i];
+            // get index of joint name
+            int joint_idx = val::joint_names_to_indices[joint_name];
+            // set joint position in configuration vector
+            q[joint_idx] = joint_point_msg.positions[i];
+        }
+
+        // get chest orientation for configuration vector
+        getChestOrientation(q, chest_quat);
+
+        // set chest waypoint time (convert from ros::Duration to double)
+        waypoint_time = joint_point_msg.time_from_start.toSec();
+
+        return;
+    }
+
+    void getChestOrientationTrajectory(trajectory_msgs::JointTrajectory joint_traj_msg,
+                                       std::vector<dynacore::Quaternion>& chest_traj,
+                                       std::vector<double>& chest_traj_times) {
+        // clear and resize trajectory vector
+        chest_traj.clear();
+        chest_traj.resize(joint_traj_msg.points.size());
+
+        // clear and resize waypoint times vector
+        chest_traj_times.clear();
+        chest_traj_times.resize(joint_traj_msg.points.size());
+
+        // get each waypoint and time
+        for( int i = 0 ; i < joint_traj_msg.points.size() ; i++ ) {
+            // set each trajectory waypoint
+            getChestOrientation(joint_traj_msg.joint_names,
+                                joint_traj_msg.points[i],
+                                chest_traj[i],
+                                chest_traj_times[i]);
+        }
+
+        return;
+    }
+
     bool checkControlledLink(std::vector<int> controlled_links, int link_id) {
         // check if link id is in vector
         std::vector<int>::iterator it;
         it = std::find(controlled_links.begin(), controlled_links.end(), link_id);
 
         return (it != controlled_links.end());
+    }
+
+    void getControlledLinksFromMoveItMsg(moveit_msgs::RobotTrajectory moveit_robot_traj_msg,
+                                         std::vector<int>& controlled_links) {
+        // get name of controlled joints
+        std::vector<std::string> joint_names = moveit_robot_traj_msg.joint_trajectory.joint_names;
+
+        // get corresponding joint indices
+        std::vector<int> joint_indices;
+        joint_indices.resize(joint_names.size());
+        for( int i = 0 ; i < joint_names.size() ; i++ ) {
+            joint_indices[i] = val::joint_names_to_indices[joint_names[i]];
+        }
+
+        // get links controlled by joint indices; only consider MoveIt links (torso, left hand, right hand)
+        getMoveItLinksControlledByJoints(joint_indices, controlled_links);
+
+        return;
+    }
+
+    bool checkPelvisLinkControlledByJoints(std::vector<int> joint_indices) {
+        // get pelvis joint group indices
+        std::vector<int> pelvis_joint_indices;
+        getRelevantValDefJointIndicesPelvis(pelvis_joint_indices);
+
+        // check if any joint indices are in pelvis joint group
+        return checkJointsAgainstJointGroup(joint_indices, pelvis_joint_indices);
+    }
+
+    bool checkLeftFootLinkControlledByJoints(std::vector<int> joint_indices) {
+        // get left leg joint group indices
+        std::vector<int> lleg_joint_indices;
+        getRelevantValDefJointIndicesLeftLeg(lleg_joint_indices);
+
+        // check if any joint indices are in left leg joint group
+        return checkJointsAgainstJointGroup(joint_indices, lleg_joint_indices);
+    }
+
+    bool checkRightFootLinkControlledByJoints(std::vector<int> joint_indices) {
+        // get right leg joint group indices
+        std::vector<int> rleg_joint_indices;
+        getRelevantValDefJointIndicesRightLeg(rleg_joint_indices);
+
+        // check if any joint indices are in right leg joint group
+        return checkJointsAgainstJointGroup(joint_indices, rleg_joint_indices);
+    }
+
+    bool checkTorsoLinkControlledByJoints(std::vector<int> joint_indices) {
+        // get torso joint group indices
+        std::vector<int> torso_joint_indices;
+        getRelevantValDefJointIndicesTorso(torso_joint_indices);
+
+        // check if any joint indices are in torso joint group
+        return checkJointsAgainstJointGroup(joint_indices, torso_joint_indices);
+    }
+
+    bool checkLeftPalmLinkControlledByJoints(std::vector<int> joint_indices) {
+        // get left arm joint group indices
+        std::vector<int> larm_joint_indices;
+        getRelevantValDefJointIndicesLeftArm(larm_joint_indices);
+
+        // check if any joint indices are in left arm joint group
+        return checkJointsAgainstJointGroup(joint_indices, larm_joint_indices);
+    }
+
+    bool checkHeadLinkControlledByJoints(std::vector<int> joint_indices) {
+        // get neck joint group indices
+        std::vector<int> neck_joint_indices;
+        getRelevantValDefJointIndicesNeck(neck_joint_indices);
+
+        // check if any joint indices are in neck joint group
+        return checkJointsAgainstJointGroup(joint_indices, neck_joint_indices);
+    }
+
+    bool checkRightPalmLinkControlledByJoints(std::vector<int> joint_indices) {
+        // get right arm joint group indices
+        std::vector<int> rarm_joint_indices;
+        getRelevantValDefJointIndicesRightArm(rarm_joint_indices);
+
+        // check if any joint indices are in right arm joint group
+        return checkJointsAgainstJointGroup(joint_indices, rarm_joint_indices);
+    }
+
+    bool checkJointsAgainstJointGroup(std::vector<int> joint_indices,
+                                      std::vector<int> joint_group_indices) {
+        // loop through given joints
+        for( int i = 0 ; i < joint_indices.size() ; i++ ) {
+            // find given joint in joint group
+            std::vector<int>::iterator it;
+            it = std::find(joint_group_indices.begin(), joint_group_indices.end(), joint_indices[i]);
+            if( it != joint_group_indices.end() ) {
+                // one of the given joints is in the given joint group
+                return true;
+            }
+        }
+
+        // if we reach here, none of the given joints are in the given joint group
+        return false;
+    }
+
+    void getLinksControlledByJoints(std::vector<int> joint_indices, std::vector<int>& controlled_links) {
+        // construct vector of all links
+        std::vector<int> all_valkyrie_links{
+            valkyrie_link::pelvis,
+            valkyrie_link::torso,
+            valkyrie_link::rightCOP_Frame,
+            valkyrie_link::leftCOP_Frame,
+            valkyrie_link::rightPalm,
+            valkyrie_link::leftPalm,
+            valkyrie_link::head
+        };
+
+        // get links from links of interest that are controlled by given joints
+        getLinksControlledByJoints(joint_indices, controlled_links, all_valkyrie_links);
+
+        return;
+    }
+
+    void getMoveItLinksControlledByJoints(std::vector<int> joint_indices, std::vector<int>& controlled_links) {
+        // construct vector of links controlled by MoveIt
+        std::vector<int> moveit_links{
+            valkyrie_link::torso,
+            valkyrie_link::leftPalm,
+            valkyrie_link::rightPalm
+        };
+
+        // get links from links of interest that are controlled by given joints
+        getLinksControlledByJoints(joint_indices, controlled_links, moveit_links);
+    }
+
+    void getLinksControlledByJoints(std::vector<int> joint_indices, std::vector<int>& controlled_links,
+                                    std::vector<int> links_of_interest) {
+        // clear controlled links vector
+        controlled_links.clear();
+
+        // initialize iterator for finding links
+        std::vector<int>::iterator it;
+
+        // check for pelvis link
+        it = std::find(links_of_interest.begin(), links_of_interest.end(), valkyrie_link::pelvis);
+        if( it != links_of_interest.end() ) {
+            // check if pelvis controlled by given joints
+            if ( checkPelvisLinkControlledByJoints(joint_indices) ) {
+                // add pelvis to controlled links
+                controlled_links.push_back(valkyrie_link::pelvis);
+            }
+        }
+
+        // check for torso link
+        it = std::find(links_of_interest.begin(), links_of_interest.end(), valkyrie_link::torso);
+        if( it != links_of_interest.end() ) {
+            // check if torso controlled by given joints
+            if ( checkTorsoLinkControlledByJoints(joint_indices) ) {
+                // add torso to controlled links
+                controlled_links.push_back(valkyrie_link::torso);
+            }
+        }
+
+        // check for right foot link
+        it = std::find(links_of_interest.begin(), links_of_interest.end(), valkyrie_link::rightCOP_Frame);
+        if( it != links_of_interest.end() ) {
+            // check if right foot controlled by given joints
+            if ( checkRightFootLinkControlledByJoints(joint_indices) ) {
+                // add right foot to controlled links
+                controlled_links.push_back(valkyrie_link::rightCOP_Frame);
+            }
+        }
+
+        // check for left foot link
+        it = std::find(links_of_interest.begin(), links_of_interest.end(), valkyrie_link::leftCOP_Frame);
+        if( it != links_of_interest.end() ) {
+            // check if left foot controlled by given joints
+            if ( checkLeftFootLinkControlledByJoints(joint_indices) ) {
+                // add left foot to controlled links
+                controlled_links.push_back(valkyrie_link::leftCOP_Frame);
+            }
+        }
+
+        // check for right palm link
+        it = std::find(links_of_interest.begin(), links_of_interest.end(), valkyrie_link::rightPalm);
+        if( it != links_of_interest.end() ) {
+            // check if right palm controlled by given joints
+            if ( checkRightPalmLinkControlledByJoints(joint_indices) ) {
+                // add right palm to controlled links
+                controlled_links.push_back(valkyrie_link::rightPalm);
+            }
+        }
+
+        // check for left palm link
+        it = std::find(links_of_interest.begin(), links_of_interest.end(), valkyrie_link::leftPalm);
+        if( it != links_of_interest.end() ) {
+            // check if left palm controlled by given joints
+            if ( checkLeftPalmLinkControlledByJoints(joint_indices) ) {
+                // add left palm to controlled links
+                controlled_links.push_back(valkyrie_link::leftPalm);
+            }
+        }
+
+        // check for head link
+        it = std::find(links_of_interest.begin(), links_of_interest.end(), valkyrie_link::head);
+        if( it != links_of_interest.end() ) {
+            // check if head controlled by given joints
+            if ( checkHeadLinkControlledByJoints(joint_indices) ) {
+                // add head to controlled links
+                controlled_links.push_back(valkyrie_link::head);
+            }
+        }
+
+        return;
     }
 
     void applyHandOffset(dynacore::Vect3& left_hand_pos, dynacore::Quaternion& left_hand_quat,
