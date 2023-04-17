@@ -23,6 +23,7 @@
 #include <Valkyrie/Valkyrie_Definition.h>
 #include <Valkyrie/Valkyrie_Model.hpp>
 
+#include <controller_msgs/AbortWalkingMessage.h>
 #include <controller_msgs/ArmTrajectoryMessage.h>
 #include <controller_msgs/ChestTrajectoryMessage.h>
 #include <controller_msgs/FootTrajectoryMessage.h>
@@ -31,6 +32,7 @@
 #include <controller_msgs/JointspaceTrajectoryMessage.h>
 #include <controller_msgs/NeckTrajectoryMessage.h>
 #include <controller_msgs/OneDoFJointTrajectoryMessage.h>
+#include <controller_msgs/PauseWalkingMessage.h>
 #include <controller_msgs/PelvisTrajectoryMessage.h>
 #include <controller_msgs/QueueableMessage.h>
 #include <controller_msgs/SE3TrajectoryMessage.h>
@@ -39,6 +41,7 @@
 #include <controller_msgs/SO3TrajectoryMessage.h>
 #include <controller_msgs/SO3TrajectoryPointMessage.h>
 #include <controller_msgs/SpineTrajectoryMessage.h>
+#include <controller_msgs/StopAllTrajectoryMessage.h>
 #include <controller_msgs/TrajectoryPoint1DMessage.h>
 #include <controller_msgs/WeightMatrix3DMessage.h>
 #include <controller_msgs/WholeBodyTrajectoryMessage.h>
@@ -50,6 +53,16 @@ namespace IHMCMsgUtils {
     void testFunction();
 
     // FUNCTIONS FOR MAKING IHMC MESSAGES
+    /*
+     * makes an AbortWalkingMessage
+     * @param abort_msg, the message to be populated
+     * @param msg_params, the IHMCMessageParameters struct containing parameters for populating the message
+     * @return none
+     * @post abort_msg populated
+     */
+    void makeIHMCAbortWalkingMessage(controller_msgs::AbortWalkingMessage& abort_msg,
+                                     IHMCMessageParameters msg_params);
+
     /*
      * makes an ArmTrajectoryMessage from the given configuration vector
      * @param q_joints, the vector containing the desired configuration for the relevant joints
@@ -199,6 +212,31 @@ namespace IHMCMsgUtils {
                                               IHMCMessageParameters msg_params);
 
     /*
+     * makes a PauseWalkingMessage
+     * @param pause_msg, the message to be populated
+     * @param pause, a boolean indicating whether to pause or unpause/resume footsteps
+     * @param msg_params, the IHMCMessageParameters struct containing parameters for populating the message
+     * @return none
+     * @post pause_msg populated
+     */
+    void makeIHMCPauseWalkingMessage(controller_msgs::PauseWalkingMessage& pause_msg,
+                                     bool pause,
+                                     IHMCMessageParameters msg_params);
+
+    /*
+     * makes a PauseWalkingMessage to either pause or resume walking
+     * @param pause_msg, the message to be populated
+     * @param resume_msg, the message to be populated
+     * @return none
+     * @post pause_msg populated
+     * @post resume_msg populated
+     */
+    void makeIHMCPauseWalkingMessage(controller_msgs::PauseWalkingMessage& pause_msg,
+                                     IHMCMessageParameters msg_params);
+    void makeIHMCResumeWalkingMessage(controller_msgs::PauseWalkingMessage& resume_msg,
+                                      IHMCMessageParameters msg_params);
+
+    /*
      * makes a PelvisTrajectoryMessage from the given configuration vector
      * @param q_joints, the vector containing the desired configuration for the relevant joints
      * @param pelvis_msg, the message to be populated
@@ -315,6 +353,16 @@ namespace IHMCMsgUtils {
                                         std::vector<double> joint_traj_times,
                                         controller_msgs::SpineTrajectoryMessage& spine_msg,
                                         IHMCMessageParameters msg_params);
+
+    /*
+     * makes a StopAllTrajectoryMessage
+     * @param stop_msg, the message to be populated
+     * @param msg_params, the IHMCMessageParameters struct containing parameters for populating the message
+     * @return none
+     * @post stop_msg populated
+     */
+    void makeIHMCStopAllTrajectoryMessage(controller_msgs::StopAllTrajectoryMessage& stop_msg,
+                                          IHMCMessageParameters msg_params);
 
     /*
      * makes a TrajectoryPoint1DMessage from the given joint position value

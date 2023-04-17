@@ -50,6 +50,10 @@ public:
     void publishFingerCloseLeftMessage();
     void publishFingerOpenRightMessage();
     void publishFingerCloseRightMessage();
+    void publishAbortWalkingMessage();
+    void publishPauseWalkingMessage();
+    void publishResumeWalkingMessage();
+    void publishStopAllTrajectoryMessage();
 
     // HELPER FUNCTIONS
     std::string getStatus();
@@ -64,6 +68,10 @@ public:
     void updatePublishFingerCommandFlag();
     bool getPublishHandCommandFlag();
     void updatePublishHandCommandFlag();
+    bool getPublishAbortWalkingCommandFlag();
+    bool getPublishPauseWalkingCommandFlag();
+    bool getPublishResumeWalkingCommandFlag();
+    bool getPublishStopAllTrajectoryCommandFlag();
     bool getPublishMoveItTrajectoryFlag();
     void updatePublishMoveItTrajectoryFlag();
     void prepareEmptyPose(dynacore::Vect3& pos, dynacore::Quaternion& quat);
@@ -99,6 +107,9 @@ private:
     ros::Publisher wholebody_pub_; // publisher for wholebody messages
     ros::Publisher go_home_pub_; // publisher for go home messages
     ros::Publisher finger_pub_; // publisher for finger messages
+    ros::Publisher abort_walking_pub_; // publisher for abort walking messages
+    ros::Publisher pause_walking_pub_; // publisher for pause/resume walking messages
+    ros::Publisher stop_all_traj_pub_; // publisher for stop all trajectory messages
 
     bool commands_from_controllers_; // flag indicating whether joint commands are coming from controllers (affects queueing properties of messages)
     bool cartesian_hand_goals_; // flag indicating whether arm commands are in Cartesian space or joint space (affects which fields of messages get set)
@@ -127,6 +138,11 @@ private:
     bool close_right_hand_; // flag indicating if close right hand message should be published
     bool publish_finger_command_; // flag indicating if any finger messages need to be published
     bool publish_hand_command_; // flag indicating if any hand messages need to be published
+
+    bool publish_abort_walking_command_; // flag indicating if abort walking message needs to be published
+    bool publish_pause_walking_command_; // flag indicating if pause walking message needs to be published
+    bool publish_resume_walking_command_; // flag indicating if resume walking message needs to be published
+    bool publish_stop_all_traj_command_; // flag indicating if stop all trajectory message needs to be published
 
     bool publish_moveit_traj_; // flag indicating if MoveIt trajectory needs to be published
 

@@ -13,6 +13,14 @@ namespace IHMCMsgUtils {
     }
 
     // FUNCTIONS FOR MAKING IHMC MESSAGES
+    void makeIHMCAbortWalkingMessage(controller_msgs::AbortWalkingMessage& abort_msg,
+                                     IHMCMessageParameters msg_params) {
+        // set sequence id
+        abort_msg.sequence_id = msg_params.sequence_id;
+
+        return;
+    }
+
     void makeIHMCArmTrajectoryMessage(dynacore::Vector q_joints,
                                       controller_msgs::ArmTrajectoryMessage& arm_msg,
                                       int robot_side,
@@ -292,6 +300,34 @@ namespace IHMCMsgUtils {
         return;
     }
 
+    void makeIHMCPauseWalkingMessage(controller_msgs::PauseWalkingMessage& pause_msg,
+                                     bool pause,
+                                     IHMCMessageParameters msg_params) {
+        // set sequence id
+        pause_msg.sequence_id = msg_params.sequence_id;
+
+        // set pause/unpause flag
+        pause_msg.pause = pause;
+
+        return;
+    }
+
+    void makeIHMCPauseWalkingMessage(controller_msgs::PauseWalkingMessage& pause_msg,
+                                     IHMCMessageParameters msg_params) {
+        // make pause message to pause walking
+        makeIHMCPauseWalkingMessage(pause_msg, true, msg_params);
+
+        return;
+    }
+
+    void makeIHMCResumeWalkingMessage(controller_msgs::PauseWalkingMessage& resume_msg,
+                                      IHMCMessageParameters msg_params) {
+        // make pause message to unpause/resume walking
+        makeIHMCPauseWalkingMessage(resume_msg, false, msg_params);
+
+        return;
+    }
+
     void makeIHMCPelvisTrajectoryMessage(dynacore::Vector q_joints,
                                          controller_msgs::PelvisTrajectoryMessage& pelvis_msg,
                                          IHMCMessageParameters msg_params) {
@@ -544,6 +580,14 @@ namespace IHMCMsgUtils {
 
         // construct and set JointspaceTrajectoryMessage for spine
         makeIHMCJointspaceTrajectoryMessage(joint_traj, joint_vels, joint_traj_times, spine_msg.jointspace_trajectory, msg_params);
+
+        return;
+    }
+
+    void makeIHMCStopAllTrajectoryMessage(controller_msgs::StopAllTrajectoryMessage& stop_msg,
+                                          IHMCMessageParameters msg_params) {
+        // set sequence id
+        stop_msg.sequence_id = msg_params.sequence_id;
 
         return;
     }

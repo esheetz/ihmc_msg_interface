@@ -91,6 +91,11 @@ IHMCInterfaceNode::IHMCInterfaceNode(const ros::NodeHandle& nh) {
     publish_finger_command_ = false;
     publish_hand_command_ = false;
 
+    publish_abort_walking_command_ = false;
+    publish_pause_walking_command_ = false;
+    publish_resume_walking_command_ = false;
+    publish_stop_all_traj_command_ = false;
+
     publish_moveit_traj_ = false;
 
     // set initial empty status
@@ -121,6 +126,11 @@ bool IHMCInterfaceNode::initializeConnections() {
     wholebody_pub_ = nh_.advertise<controller_msgs::WholeBodyTrajectoryMessage>("/ihmc/valkyrie/humanoid_control/input/whole_body_trajectory", 1);
     go_home_pub_ = nh_.advertise<controller_msgs::GoHomeMessage>("/ihmc/valkyrie/humanoid_control/input/go_home", 20);
     finger_pub_ = nh_.advertise<controller_msgs::ValkyrieHandFingerTrajectoryMessage>("/ihmc/valkyrie/humanoid_control/input/valkyrie_hand_finger_trajectory", 10);
+
+    // publishers for sending high-level abort/pause/resume/stop messages
+    abort_walking_pub_ = nh_.advertise<controller_msgs::AbortWalkingMessage>("/ihmc/valkyrie/humanoid_control/input/abort_walking", 1);
+    pause_walking_pub_ = nh_.advertise<controller_msgs::PauseWalkingMessage>("/ihmc/valkyrie/humanoid_control/input/pause_walking", 1);
+    stop_all_traj_pub_ = nh_.advertise<controller_msgs::StopAllTrajectoryMessage>("/ihmc/valkyrie/humanoid_control/input/stop_all_trajectory", 1);
 
     return true;
 }
@@ -365,6 +375,42 @@ void IHMCInterfaceNode::statusCallback(const std_msgs::String& status_msg) {
 
         ROS_INFO("[IHMC Interface Node] Closing right hand...");
     }
+    else if( status_msg.data == std::string("ABORT-WALKING") ) {
+        // set status
+        status_ = status_msg.data;
+
+        // set flag
+        publish_abort_walking_command_ = true;
+
+        ROS_INFO("[IHMC Interface Node] Aborting walking...");
+    }
+    else if( status_msg.data == std::string("PAUSE-WALKING") ) {
+        // set status
+        status_ = status_msg.data;
+
+        // set flag
+        publish_pause_walking_command_ = true;
+
+        ROS_INFO("[IHMC Interface Node] Pausing walking...");
+    }
+    else if( status_msg.data == std::string("RESUME-WALKING") ) {
+        // set status
+        status_ = status_msg.data;
+
+        // set flag
+        publish_resume_walking_command_ = true;
+
+        ROS_INFO("[IHMC Interface Node] Resuming walking...");
+    }
+    else if( status_msg.data == std::string("STOP-ALL-TRAJECTORY") ) {
+        // set status
+        status_ = status_msg.data;
+
+        // set flag
+        publish_stop_all_traj_command_ = true;
+
+        ROS_INFO("[IHMC Interface Node] Stopping all trajectories...");
+    }
     else {
         ROS_WARN("[IHMC Interface Node] Unrecognized status %s, ignoring status message", status_msg.data.c_str());
     }
@@ -464,7 +510,7 @@ void IHMCInterfaceNode::receiveMoveItTrajCallback(const std_msgs::Bool& bool_msg
         received_moveit_traj_ = false;
 
         // update flag to publish MoveIt trajectory
-        // TODO
+        updatePublishMoveItTrajectoryFlag();
 
         ROS_INFO("[IHMC Interface Node] Accepting MoveIt trajectories");
     }
@@ -473,7 +519,7 @@ void IHMCInterfaceNode::receiveMoveItTrajCallback(const std_msgs::Bool& bool_msg
         received_moveit_traj_ = false;
 
         // update flag to publish MoveIt trajectory
-        // TODO
+        updatePublishMoveItTrajectoryFlag();
 
         // update flag to stop node (not necessary, but just to be sure)
         updateStopNodeFlag();
@@ -781,6 +827,74 @@ void IHMCInterfaceNode::publishFingerCloseRightMessage() {
     return;
 }
 
+void IHMCInterfaceNode::publishAbortWalkingMessage() {
+    // initialize struct of default IHMC message parameters
+    IHMCMsgUtils::IHMCMessageParameters msg_params;
+
+    // create abort walking message
+    controller_msgs::AbortWalkingMessage abort_msg;
+    IHMCMsgUtils::makeIHMCAbortWalkingMessage(abort_msg, msg_params);
+
+    // publish message
+    abort_walking_pub_.publish(abort_msg);
+
+    // reset flag
+    publish_abort_walking_command_ = false;
+
+    return;
+}
+
+void IHMCInterfaceNode::publishPauseWalkingMessage() {
+    // initialize struct of default IHMC message parameters
+    IHMCMsgUtils::IHMCMessageParameters msg_params;
+
+    // create pause walking message
+    controller_msgs::PauseWalkingMessage pause_msg;
+    IHMCMsgUtils::makeIHMCPauseWalkingMessage(pause_msg, msg_params);
+
+    // publish message
+    pause_walking_pub_.publish(pause_msg);
+
+    // reset flag
+    publish_pause_walking_command_ = false;
+
+    return;
+}
+
+void IHMCInterfaceNode::publishResumeWalkingMessage() {
+    // initialize struct of default IHMC message parameters
+    IHMCMsgUtils::IHMCMessageParameters msg_params;
+
+    // create resume walking message
+    controller_msgs::PauseWalkingMessage resume_msg;
+    IHMCMsgUtils::makeIHMCResumeWalkingMessage(resume_msg, msg_params);
+
+    // publish message
+    pause_walking_pub_.publish(resume_msg);
+
+    // reset flag
+    publish_resume_walking_command_ = false;
+
+    return;
+}
+
+void IHMCInterfaceNode::publishStopAllTrajectoryMessage() {
+    // initialize struct of default IHMC message parameters
+    IHMCMsgUtils::IHMCMessageParameters msg_params;
+
+    // create stop all trajectory message
+    controller_msgs::StopAllTrajectoryMessage stop_all_msg;
+    IHMCMsgUtils::makeIHMCStopAllTrajectoryMessage(stop_all_msg, msg_params);
+
+    // publish message
+    stop_all_traj_pub_.publish(stop_all_msg);
+
+    // reset flag
+    publish_stop_all_traj_command_ = false;
+
+    return;
+}
+
 // HELPER FUNCTIONS
 std::string IHMCInterfaceNode::getStatus() {
     return status_;
@@ -843,6 +957,22 @@ void IHMCInterfaceNode::updatePublishHandCommandFlag() {
     publish_hand_command_ = cartesian_hand_goals_ && (received_left_hand_goal_ || received_right_hand_goal_);
 
     return;
+}
+
+bool IHMCInterfaceNode::getPublishAbortWalkingCommandFlag() {
+    return publish_abort_walking_command_;
+}
+
+bool IHMCInterfaceNode::getPublishPauseWalkingCommandFlag() {
+    return publish_pause_walking_command_;
+}
+
+bool IHMCInterfaceNode::getPublishResumeWalkingCommandFlag() {
+    return publish_resume_walking_command_;
+}
+
+bool IHMCInterfaceNode::getPublishStopAllTrajectoryCommandFlag() {
+    return publish_stop_all_traj_command_;
 }
 
 bool IHMCInterfaceNode::getPublishMoveItTrajectoryFlag() {
@@ -1023,6 +1153,34 @@ int main(int argc, char **argv) {
                 // ready to publish finger message
                 ROS_INFO("[IHMC Interface Node] Publishing hand finger trajectory message...");
                 ihmc_interface_node.publishHandFingerMessage();
+            }
+
+            // check if walking needs to be aborted
+            if( ihmc_interface_node.getPublishAbortWalkingCommandFlag() ) {
+                // ready to publish abort walking message
+                ROS_INFO("[IHMC Interface Node] Publishing abort walking message...");
+                ihmc_interface_node.publishAbortWalkingMessage();
+            }
+
+            // check if walking needs to be paused
+            if( ihmc_interface_node.getPublishPauseWalkingCommandFlag() ) {
+                // ready to publish pause walking message
+                ROS_INFO("[IHMC Interface Node] Publishing pause walking message...");
+                ihmc_interface_node.publishPauseWalkingMessage();
+            }
+
+            // check if walking needs to be resumed
+            if( ihmc_interface_node.getPublishResumeWalkingCommandFlag() ) {
+                // ready to publish resume walking message
+                ROS_INFO("[IHMC Interface Node] Publishing resume walking message...");
+                ihmc_interface_node.publishResumeWalkingMessage();
+            }
+
+            // check if trajectories need to be stopped
+            if( ihmc_interface_node.getPublishStopAllTrajectoryCommandFlag() ) {
+                // ready to publish stop all trajectories message
+                ROS_INFO("[IHMC Interface Node] Publishing stop all trajectories message...");
+                ihmc_interface_node.publishStopAllTrajectoryMessage();
             }
 
             // check if any hands need to be moved to target
