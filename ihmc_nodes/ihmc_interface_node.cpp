@@ -73,7 +73,7 @@ IHMCInterfaceNode::IHMCInterfaceNode(const ros::NodeHandle& nh) {
     received_joint_command_ = false;
     received_left_hand_goal_ = false;
     received_right_hand_goal_ = false;
-    receive_moveit_traj_ = false;
+    receive_moveit_traj_ = true;
     received_moveit_traj_ = false;
     publish_commands_ = false;
     stop_node_ = false;
