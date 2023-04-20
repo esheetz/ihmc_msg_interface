@@ -10,7 +10,7 @@
 ************************************************************-->
 <launch>
 	<arg name="controllers" default="true"/> <!-- indicates if joint commands come from controllers; will change queueing properties of IHMC messages -->
-	<arg name="managing_node" default="ControllerTestNode"/> <!-- only necessary if controllers flag is true -->
+	<arg name="managing_node" default="IHMCInterfaceNode"/> <!-- only necessary if controllers flag is true --> <!-- "ControllerTestNode" -->
 
 	<arg name="launch_footstep_services" default="false"/> <!-- indicates if planning and executing services should be launched -->
 

@@ -12,7 +12,7 @@ IHMCInterfaceNode::IHMCInterfaceNode(const ros::NodeHandle& nh) {
     // set up parameters
     nh_.param("commands_from_controllers", commands_from_controllers_, true);
     std::string managing_node;
-    nh_.param("managing_node", managing_node, std::string("ControllerTestNode"));
+    nh_.param("managing_node", managing_node, std::string("IHMCInterfaceNode"));
     managing_node = std::string("/") + managing_node + std::string("/");
     nh_.param("pelvis_tf_topic", pelvis_tf_topic_,
               std::string("controllers/output/ihmc/pelvis_transform"));
@@ -40,8 +40,8 @@ IHMCInterfaceNode::IHMCInterfaceNode(const ros::NodeHandle& nh) {
         hand_pose_command_topic_ = managing_node + hand_pose_command_topic_;
         receive_cartesian_goals_topic_ = managing_node + receive_cartesian_goals_topic_;
         // we know MoveIt trajectory information will always come from the MoveIt Planner Executor Server
-        moveit_traj_topic_ = "/ValkyrieMoveItPlannerExecutorServerNode/" + moveit_traj_topic_;
-        receive_moveit_traj_topic_ = "/ValkyrieMoveItPlannerExecutorServerNode/" + receive_moveit_traj_topic_;
+        moveit_traj_topic_ = managing_node + moveit_traj_topic_;
+        receive_moveit_traj_topic_ = managing_node + receive_moveit_traj_topic_;
     }
 
     initializeConnections();
@@ -115,7 +115,7 @@ bool IHMCInterfaceNode::initializeConnections() {
     joint_command_sub_ = nh_.subscribe(joint_command_topic_, 1, &IHMCInterfaceNode::jointCommandCallback, this);
     if( commands_from_controllers_ ) {
         controlled_link_sub_ = nh_.subscribe(controlled_link_topic_, 1, &IHMCInterfaceNode::controlledLinkIdsCallback, this);
-        status_sub_ = nh_.subscribe(status_topic_, 20, &IHMCInterfaceNode::statusCallback, this);
+        status_sub_ = nh_.subscribe(status_topic_, 100, &IHMCInterfaceNode::statusCallback, this);
         hand_pose_command_sub_ = nh_.subscribe(hand_pose_command_topic_, 1, &IHMCInterfaceNode::handPoseCommandCallback, this);
         receive_cartesian_goals_sub_ = nh_.subscribe(receive_cartesian_goals_topic_, 1, &IHMCInterfaceNode::receiveCartesianGoalsCallback, this);
         moveit_traj_sub_ = nh_.subscribe(moveit_traj_topic_, 1, &IHMCInterfaceNode::plannedMoveItRobotTrajectoryCallback, this);
