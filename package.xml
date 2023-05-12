@@ -18,5 +18,5 @@
   <depend>trajectory_msgs</depend>
   <depend>moveit_msgs</depend>
   <depend>controller_msgs</depend>
-  <depend>val_dynacore</depend>
+  <depend>val_dynacore_utils</depend>
 </package>
