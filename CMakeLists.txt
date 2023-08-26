@@ -18,14 +18,14 @@ find_package(catkin REQUIRED COMPONENTS
   trajectory_msgs
   moveit_msgs
   controller_msgs
-  val_dynacore
+  val_dynacore_utils
 )
 
 #------------------------------------------------------------------------
 #     catkin Setup
 #------------------------------------------------------------------------
 catkin_package(
-  CATKIN_DEPENDS roscpp tf geometry_msgs sensor_msgs std_msgs trajectory_msgs moveit_msgs controller_msgs val_dynacore
+  CATKIN_DEPENDS roscpp tf geometry_msgs sensor_msgs std_msgs trajectory_msgs moveit_msgs controller_msgs val_dynacore_utils
 )
 include_directories(${catkin_INCLUDE_DIRS})
 
