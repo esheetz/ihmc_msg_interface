@@ -42,6 +42,7 @@ IHMCInterfaceNode::IHMCInterfaceNode(const ros::NodeHandle& nh) {
         // we know MoveIt trajectory information will always come from the MoveIt Planner Executor Server
         moveit_traj_topic_ = managing_node + moveit_traj_topic_;
         receive_moveit_traj_topic_ = managing_node + receive_moveit_traj_topic_;
+        trajectory_point_time_topic_ = managing_node + "/cartesian_hand_trajectory_time";
     }
 
     initializeConnections();
@@ -68,7 +69,7 @@ IHMCInterfaceNode::IHMCInterfaceNode(const ros::NodeHandle& nh) {
         controlled_links_.push_back(valkyrie_link::leftPalm);
         controlled_links_.push_back(valkyrie_link::head);
     }
-    cartesian_hand_goals_ = false;
+    cartesian_hand_goals_ = true;
     received_pelvis_transform_ = false;
     received_joint_command_ = false;
     received_left_hand_goal_ = false;
@@ -98,6 +99,8 @@ IHMCInterfaceNode::IHMCInterfaceNode(const ros::NodeHandle& nh) {
 
     publish_moveit_traj_ = false;
 
+    trajectory_point_time_ = 0.0;
+
     // set initial empty status
     status_ = std::string("");
 
@@ -120,6 +123,7 @@ bool IHMCInterfaceNode::initializeConnections() {
         receive_cartesian_goals_sub_ = nh_.subscribe(receive_cartesian_goals_topic_, 1, &IHMCInterfaceNode::receiveCartesianGoalsCallback, this);
         moveit_traj_sub_ = nh_.subscribe(moveit_traj_topic_, 1, &IHMCInterfaceNode::plannedMoveItRobotTrajectoryCallback, this);
         receive_moveit_traj_sub_ = nh_.subscribe(receive_moveit_traj_topic_, 1, &IHMCInterfaceNode::receiveMoveItTrajCallback, this);
+        trajectory_point_time_sub_ = nh_.subscribe(trajectory_point_time_topic_, 1, &IHMCInterfaceNode::trajectoryPointTimeCallback, this);
     }
 
     // publishers for sending whole-body messages
@@ -530,6 +534,16 @@ void IHMCInterfaceNode::receiveMoveItTrajCallback(const std_msgs::Bool& bool_msg
     return;
 }
 
+void IHMCInterfaceNode::trajectoryPointTimeCallback(const std_msgs::Float32& float_msg) {
+    // store time internally
+    if( trajectory_point_time_ != float_msg.data ) {
+        trajectory_point_time_ = float_msg.data;
+        ROS_INFO("[IHMC Interface Node] Set trajectory point time for Cartesian hand goals to %f seconds", trajectory_point_time_);
+    }
+
+    return;
+}
+
 // PUBLISH MESSAGE
 void IHMCInterfaceNode::publishWholeBodyMessage() {
     // prepare configuration vector based on received pelvis transform and joint command
@@ -585,6 +599,10 @@ void IHMCInterfaceNode::publishWholeBodyMessageCartesianHandGoals() {
     // update message parameters for Cartesian goals
     msg_params.cartesian_hand_goals = cartesian_hand_goals_;
     msg_params.frame_params.cartesian_goal_reference_frame_name = cartesian_frame_id;
+    if( trajectory_point_time_ != 0.0 ) {
+        // received non-default time
+        msg_params.traj_point_params.time = trajectory_point_time_;
+    }
 
     // get transform from pelvis to world
     tf::StampedTransform tf_pelvis_wrt_world;

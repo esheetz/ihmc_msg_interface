@@ -11,6 +11,7 @@
 #include <Valkyrie/Valkyrie_Model.hpp>
 #include <ros/ros.h>
 #include <std_msgs/Bool.h>
+#include <std_msgs/Float32.h>
 #include <std_msgs/Int32MultiArray.h>
 #include <std_msgs/String.h>
 #include <sensor_msgs/JointState.h>
@@ -39,6 +40,7 @@ public:
     void receiveCartesianGoalsCallback(const std_msgs::Bool& bool_msg);
     void plannedMoveItRobotTrajectoryCallback(const moveit_msgs::RobotTrajectory& moveit_msg);
     void receiveMoveItTrajCallback(const std_msgs::Bool& bool_msg);
+    void trajectoryPointTimeCallback(const std_msgs::Float32& float_msg);
 
     // PUBLISH MESSAGE
     void publishWholeBodyMessage();
@@ -102,6 +104,8 @@ private:
     ros::Subscriber receive_cartesian_goals_sub_; // subscriber for listening for Cartesian goal updates
     std::string receive_moveit_traj_topic_; // topic to subscribe to for listening to MoveIt trajectories
     ros::Subscriber receive_moveit_traj_sub_; // subscriber for listening for MoveIt trajectories
+    std::string trajectory_point_time_topic_; // topic to subscribe to for setting trajectory point time
+    ros::Subscriber trajectory_point_time_sub_; // subscriber for listening for trajectory point times
     std::string status_; // string indicating current status
 
     ros::Publisher wholebody_pub_; // publisher for wholebody messages
@@ -153,6 +157,7 @@ private:
     geometry_msgs::TransformStamped left_hand_target_; // target pose for left hand
     geometry_msgs::TransformStamped right_hand_target_; // target pose for right hand
     moveit_msgs::RobotTrajectory moveit_robot_traj_; // planned MoveIt robot trajectory
+    double trajectory_point_time_; // time for trajectory points
 
     tf::TransformListener tf_;
 };
