@@ -1854,19 +1854,29 @@ namespace IHMCMsgUtils {
         right_pose_wrt_world.translation() = right_hand_pos_wrt_world;
         right_pose_wrt_world.linear() = right_hand_quat_wrt_world.normalized().toRotationMatrix();
 
-        // initialize hand offset transform
-        dynacore::Vect3 hand_translation_offset;
-        hand_translation_offset << 0.025, -0.07, 0.0;
-        Eigen::AngleAxisd hand_rotational_offset(M_PI/2, dynacore::Vect3(0, 0, -1));
+        // initialize hand offset transform for left hand
+        dynacore::Vect3 hand_translation_offset_left;
+        hand_translation_offset_left << 0.025, 0.07, 0.0; // translate opposite y direction from right
+        Eigen::AngleAxisd hand_rotational_offset_left(M_PI/2, dynacore::Vect3(0, 0, 1)); // rotate opposite way from right
 
-        // initialize hand offset transform
-        dynacore::Transform hand_offset;
-        hand_offset.translation() = hand_translation_offset;
-        hand_offset.linear() = hand_rotational_offset.toRotationMatrix();
+        // initialize hand offset transform for left hand
+        dynacore::Transform hand_offset_left;
+        hand_offset_left.translation() = hand_translation_offset_left;
+        hand_offset_left.linear() = hand_rotational_offset_left.toRotationMatrix();
+
+        // initialize hand offset transform for right hand
+        dynacore::Vect3 hand_translation_offset_right;
+        hand_translation_offset_right << 0.025, -0.07, 0.0;
+        Eigen::AngleAxisd hand_rotational_offset_right(M_PI/2, dynacore::Vect3(0, 0, -1));
+
+        // initialize hand offset transform for right hand
+        dynacore::Transform hand_offset_right;
+        hand_offset_right.translation() = hand_translation_offset_right;
+        hand_offset_right.linear() = hand_rotational_offset_right.toRotationMatrix();
 
         // compute transformed poses
-        dynacore::Transform offset_left_pose_wrt_world = left_pose_wrt_world * hand_offset;
-        dynacore::Transform offset_right_pose_wrt_world = right_pose_wrt_world * hand_offset;
+        dynacore::Transform offset_left_pose_wrt_world = left_pose_wrt_world * hand_offset_left;
+        dynacore::Transform offset_right_pose_wrt_world = right_pose_wrt_world * hand_offset_right;
 
         // initialize offsets in world frame
         dynacore::Vect3 offset_left_hand_pos_wrt_world(offset_left_pose_wrt_world.translation());
