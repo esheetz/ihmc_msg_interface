@@ -1,0 +1,79 @@
+Found 11 topics with pattern: ihmc_ros/valkyrie/output
+
+Topic: /ihmc_ros/valkyrie/output/imu/pelvisMiddleImu
+	Type: sensor_msgs/Imu
+	Publishers:
+		/networkProcessor/rosModule
+	Subscribers:
+		None
+
+Topic: /ihmc_ros/valkyrie/output/imu/pelvisRearImu
+	Type: sensor_msgs/Imu
+	Publishers:
+		/networkProcessor/rosModule
+	Subscribers:
+		None
+
+Topic: /ihmc_ros/valkyrie/output/imu/leftTorsoImu
+	Type: sensor_msgs/Imu
+	Publishers:
+		/networkProcessor/rosModule
+	Subscribers:
+		None
+
+Topic: /ihmc_ros/valkyrie/output/imu/head_imu_sensor
+	Type: sensor_msgs/Imu
+	Publishers:
+		/networkProcessor/rosModule
+	Subscribers:
+		None
+
+Topic: /ihmc_ros/valkyrie/output/joint_states
+	Type: sensor_msgs/JointState
+	Publishers:
+		/networkProcessor/rosModule
+	Subscribers:
+		None
+
+Topic: /ihmc_ros/valkyrie/output/robot_pose
+	Type: nav_msgs/Odometry
+	Publishers:
+		/networkProcessor/rosModule
+	Subscribers:
+		None
+
+Topic: /ihmc_ros/valkyrie/output/robot_motion_status
+	Type: std_msgs/String
+	Publishers:
+		/networkProcessor/rosModule
+	Subscribers:
+		None
+
+Topic: /ihmc_ros/valkyrie/output/behavior
+	Type: std_msgs/Int32
+	Publishers:
+		/networkProcessor/rosModule
+	Subscribers:
+		None
+
+Topic: /ihmc_ros/valkyrie/output/last_robot_config_received
+	Type: ihmc_msgs/LastReceivedMessage
+	Publishers:
+		/networkProcessor/rosModule
+	Subscribers:
+		None
+
+Topic: /ihmc_ros/valkyrie/output/foot_force_sensor/left
+	Type: geometry_msgs/WrenchStamped
+	Publishers:
+		/networkProcessor/rosModule
+	Subscribers:
+		None
+
+Topic: /ihmc_ros/valkyrie/output/foot_force_sensor/right
+	Type: geometry_msgs/WrenchStamped
+	Publishers:
+		/networkProcessor/rosModule
+	Subscribers:
+		None
+

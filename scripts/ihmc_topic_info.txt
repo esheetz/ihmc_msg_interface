@@ -1,0 +1,415 @@
+Found 59 topics with pattern: ihmc
+
+Topic: /ihmc/valkyrie/toolbox/footstep_plan/output/footstep_planning_toolbox_output_status
+	Type: controller_msgs/FootstepPlanningToolboxOutputStatus
+	Publishers:
+		/ros_bridge
+	Subscribers:
+		None
+
+Topic: /ihmc/valkyrie/humanoid_control/output/footstep_status
+	Type: controller_msgs/FootstepStatusMessage
+	Publishers:
+		/ros_bridge
+	Subscribers:
+		None
+
+Topic: /ihmc/rea/output/planar_regions_list
+	Type: controller_msgs/PlanarRegionsListMessage
+	Publishers:
+		/ros_bridge
+	Subscribers:
+		None
+
+Topic: /ihmc/valkyrie/toolbox/footstep_plan/input/footstep_planner_parameters
+	Type: controller_msgs/FootstepPlannerParametersPacket
+	Publishers:
+		/ros_bridge
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/toolbox/footstep_plan/output/footstep_planner_status
+	Type: controller_msgs/FootstepPlannerStatusMessage
+	Publishers:
+		/ros_bridge
+	Subscribers:
+		None
+
+Topic: /ihmc/valkyrie/humanoid_control/output/hand_joint_angle
+	Type: controller_msgs/HandJointAnglePacket
+	Publishers:
+		/ros_bridge
+	Subscribers:
+		None
+
+Topic: /ihmc/valkyrie/humanoid_control/output/capturability_based_status
+	Type: controller_msgs/CapturabilityBasedStatus
+	Publishers:
+		/ros_bridge
+	Subscribers:
+		None
+
+Topic: /ihmc/valkyrie/toolbox/footstep_plan/input/footstep_planning_request
+	Type: controller_msgs/FootstepPlanningRequestPacket
+	Publishers:
+		/ros_bridge
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/humanoid_control/output/controller_crash_notification
+	Type: controller_msgs/ControllerCrashNotificationPacket
+	Publishers:
+		/ros_bridge
+	Subscribers:
+		None
+
+Topic: /ihmc/valkyrie/toolbox/ik_planning/output/kinematics_planning_toolbox_output_status
+	Type: controller_msgs/KinematicsPlanningToolboxOutputStatus
+	Publishers:
+		/ros_bridge
+	Subscribers:
+		None
+
+Topic: /ihmc/valkyrie/toolbox/ik_planning/output/kinematics_toolbox_output_status
+	Type: controller_msgs/KinematicsToolboxOutputStatus
+	Publishers:
+		/ros_bridge
+	Subscribers:
+		None
+
+Topic: /ihmc/valkyrie/toolbox/walking_controller_preview/output/walking_controller_preview_output
+	Type: controller_msgs/WalkingControllerPreviewOutputMessage
+	Publishers:
+		/ros_bridge
+	Subscribers:
+		None
+
+Topic: /ihmc/valkyrie/humanoid_control/input/footstep_data_list
+	Type: controller_msgs/FootstepDataListMessage
+	Publishers:
+		/ros_bridge
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/toolbox/external_force_estimation/output/external_force_estimation_output_status
+	Type: controller_msgs/ExternalForceEstimationOutputStatus
+	Publishers:
+		/ros_bridge
+	Subscribers:
+		None
+
+Topic: /ihmc/valkyrie/toolbox/ik_streaming/output/kinematics_toolbox_output_status
+	Type: controller_msgs/KinematicsToolboxOutputStatus
+	Publishers:
+		/ros_bridge
+	Subscribers:
+		None
+
+Topic: /ihmc/valkyrie/toolbox/ik_streaming/output/controller_crash_notification
+	Type: controller_msgs/ControllerCrashNotificationPacket
+	Publishers:
+		/ros_bridge
+	Subscribers:
+		None
+
+Topic: /ihmc/valkyrie/toolbox/directional_control/output/footstep_data_list
+	Type: controller_msgs/FootstepDataListMessage
+	Publishers:
+		/ros_bridge
+	Subscribers:
+		None
+
+Topic: /ihmc/valkyrie/toolbox/ik/output/kinematics_toolbox_output_status
+	Type: controller_msgs/KinematicsToolboxOutputStatus
+	Publishers:
+		/ros_bridge
+	Subscribers:
+		None
+
+Topic: /ihmc_ros/valkyrie/output/imu/pelvisMiddleImu
+	Type: sensor_msgs/Imu
+	Publishers:
+		/networkProcessor/rosModule
+	Subscribers:
+		None
+
+Topic: /ihmc_ros/valkyrie/output/imu/pelvisRearImu
+	Type: sensor_msgs/Imu
+	Publishers:
+		/networkProcessor/rosModule
+	Subscribers:
+		None
+
+Topic: /ihmc_ros/valkyrie/output/imu/leftTorsoImu
+	Type: sensor_msgs/Imu
+	Publishers:
+		/networkProcessor/rosModule
+	Subscribers:
+		None
+
+Topic: /ihmc_ros/valkyrie/output/imu/head_imu_sensor
+	Type: sensor_msgs/Imu
+	Publishers:
+		/networkProcessor/rosModule
+	Subscribers:
+		None
+
+Topic: /ihmc_ros/valkyrie/output/joint_states
+	Type: sensor_msgs/JointState
+	Publishers:
+		/networkProcessor/rosModule
+	Subscribers:
+		None
+
+Topic: /ihmc_ros/valkyrie/output/robot_pose
+	Type: nav_msgs/Odometry
+	Publishers:
+		/networkProcessor/rosModule
+	Subscribers:
+		None
+
+Topic: /ihmc_ros/valkyrie/output/robot_motion_status
+	Type: std_msgs/String
+	Publishers:
+		/networkProcessor/rosModule
+	Subscribers:
+		None
+
+Topic: /ihmc_ros/valkyrie/output/behavior
+	Type: std_msgs/Int32
+	Publishers:
+		/networkProcessor/rosModule
+	Subscribers:
+		None
+
+Topic: /ihmc_ros/valkyrie/output/last_robot_config_received
+	Type: ihmc_msgs/LastReceivedMessage
+	Publishers:
+		/networkProcessor/rosModule
+	Subscribers:
+		None
+
+Topic: /ihmc_ros/valkyrie/output/foot_force_sensor/left
+	Type: geometry_msgs/WrenchStamped
+	Publishers:
+		/networkProcessor/rosModule
+	Subscribers:
+		None
+
+Topic: /ihmc_ros/valkyrie/output/foot_force_sensor/right
+	Type: geometry_msgs/WrenchStamped
+	Publishers:
+		/networkProcessor/rosModule
+	Subscribers:
+		None
+
+Topic: /ihmc/valkyrie/humanoid_control/input/whole_body_trajectory
+	Type: controller_msgs/WholeBodyTrajectoryMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/humanoid_control/input/high_level_state
+	Type: controller_msgs/HighLevelStateMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/humanoid_control/input/abort_walking
+	Type: controller_msgs/AbortWalkingMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/humanoid_control/input/arm_trajectory
+	Type: controller_msgs/ArmTrajectoryMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/humanoid_control/input/chest_trajectory
+	Type: controller_msgs/ChestTrajectoryMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/humanoid_control/input/foot_load_bearing
+	Type: controller_msgs/FootLoadBearingMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/humanoid_control/input/go_home
+	Type: controller_msgs/GoHomeMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/humanoid_control/input/hand_trajectory
+	Type: controller_msgs/HandTrajectoryMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/humanoid_control/input/neck_trajectory
+	Type: controller_msgs/NeckTrajectoryMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/humanoid_control/input/pause_walking
+	Type: controller_msgs/PauseWalkingMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/humanoid_control/input/pelvis_height_trajectory
+	Type: controller_msgs/PelvisHeightTrajectoryMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/humanoid_control/input/pelvis_trajectory
+	Type: controller_msgs/PelvisTrajectoryMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/humanoid_control/input/prepare_for_locomotion
+	Type: controller_msgs/PrepareForLocomotionMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/rea/input/request_planar_regions_list
+	Type: controller_msgs/RequestPlanarRegionsListMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/humanoid_control/input/stop_all_trajectory
+	Type: controller_msgs/StopAllTrajectoryMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/toolbox/footstep_plan/input/toolbox_state
+	Type: controller_msgs/ToolboxStateMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/toolbox/footstep_plan/input/footstep_planner_action
+	Type: controller_msgs/FootstepPlannerActionMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/humanoid_control/input/valkyrie_hand_finger_trajectory
+	Type: controller_msgs/ValkyrieHandFingerTrajectoryMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/toolbox/ik_planning/input/kinematics_planning_toolbox_input
+	Type: controller_msgs/KinematicsPlanningToolboxInputMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/toolbox/ik_planning/input/toolbox_state
+	Type: controller_msgs/ToolboxStateMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/toolbox/walking_controller_preview/input/walking_controller_preview_input
+	Type: controller_msgs/WalkingControllerPreviewInputMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/toolbox/walking_controller_preview/input/toolbox_state
+	Type: controller_msgs/ToolboxStateMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/toolbox/external_force_estimation/input/toolbox_state
+	Type: controller_msgs/ToolboxStateMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/toolbox/external_force_estimation/input/external_force_estimation_configuration
+	Type: controller_msgs/ExternalForceEstimationConfigurationMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/toolbox/ik_streaming/input/toolbox_state
+	Type: controller_msgs/ToolboxStateMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/toolbox/ik_streaming/input/kinematics_streaming_toolbox_configuration
+	Type: controller_msgs/KinematicsStreamingToolboxConfigurationMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/toolbox/ik_streaming/input/kinematics_streaming_toolbox_input
+	Type: controller_msgs/KinematicsStreamingToolboxInputMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/toolbox/directional_control/input/directional_control_configuration
+	Type: controller_msgs/DirectionalControlConfigurationMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/toolbox/directional_control/input/directional_control_input
+	Type: controller_msgs/DirectionalControlInputMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/toolbox/directional_control/input/toolbox_state
+	Type: controller_msgs/ToolboxStateMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+

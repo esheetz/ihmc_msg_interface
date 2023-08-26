@@ -1,0 +1,16 @@
+Found 2 topics with pattern: ihmc/rea
+
+Topic: /ihmc/rea/output/planar_regions_list
+	Type: controller_msgs/PlanarRegionsListMessage
+	Publishers:
+		/ros_bridge
+	Subscribers:
+		None
+
+Topic: /ihmc/rea/input/request_planar_regions_list
+	Type: controller_msgs/RequestPlanarRegionsListMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+

@@ -1,0 +1,142 @@
+Found 20 topics with pattern: ihmc/valkyrie/humanoid_control
+
+Topic: /ihmc/valkyrie/humanoid_control/output/footstep_status
+	Type: controller_msgs/FootstepStatusMessage
+	Publishers:
+		/ros_bridge
+	Subscribers:
+		None
+
+Topic: /ihmc/valkyrie/humanoid_control/output/hand_joint_angle
+	Type: controller_msgs/HandJointAnglePacket
+	Publishers:
+		/ros_bridge
+	Subscribers:
+		None
+
+Topic: /ihmc/valkyrie/humanoid_control/output/capturability_based_status
+	Type: controller_msgs/CapturabilityBasedStatus
+	Publishers:
+		/ros_bridge
+	Subscribers:
+		None
+
+Topic: /ihmc/valkyrie/humanoid_control/output/controller_crash_notification
+	Type: controller_msgs/ControllerCrashNotificationPacket
+	Publishers:
+		/ros_bridge
+	Subscribers:
+		None
+
+Topic: /ihmc/valkyrie/humanoid_control/input/footstep_data_list
+	Type: controller_msgs/FootstepDataListMessage
+	Publishers:
+		/ros_bridge
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/humanoid_control/input/whole_body_trajectory
+	Type: controller_msgs/WholeBodyTrajectoryMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/humanoid_control/input/high_level_state
+	Type: controller_msgs/HighLevelStateMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/humanoid_control/input/abort_walking
+	Type: controller_msgs/AbortWalkingMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/humanoid_control/input/arm_trajectory
+	Type: controller_msgs/ArmTrajectoryMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/humanoid_control/input/chest_trajectory
+	Type: controller_msgs/ChestTrajectoryMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/humanoid_control/input/foot_load_bearing
+	Type: controller_msgs/FootLoadBearingMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/humanoid_control/input/go_home
+	Type: controller_msgs/GoHomeMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/humanoid_control/input/hand_trajectory
+	Type: controller_msgs/HandTrajectoryMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/humanoid_control/input/neck_trajectory
+	Type: controller_msgs/NeckTrajectoryMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/humanoid_control/input/pause_walking
+	Type: controller_msgs/PauseWalkingMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/humanoid_control/input/pelvis_height_trajectory
+	Type: controller_msgs/PelvisHeightTrajectoryMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/humanoid_control/input/pelvis_trajectory
+	Type: controller_msgs/PelvisTrajectoryMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/humanoid_control/input/prepare_for_locomotion
+	Type: controller_msgs/PrepareForLocomotionMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/humanoid_control/input/stop_all_trajectory
+	Type: controller_msgs/StopAllTrajectoryMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
+Topic: /ihmc/valkyrie/humanoid_control/input/valkyrie_hand_finger_trajectory
+	Type: controller_msgs/ValkyrieHandFingerTrajectoryMessage
+	Publishers:
+		None
+	Subscribers:
+		/ros_bridge
+
